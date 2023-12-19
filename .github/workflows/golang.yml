@@ -7,7 +7,7 @@ on:
         type: string
       build-tags:
         required: true
-        type: string # containing Json-formatted array of strings, e.g. '["", "tag1", "tag2", "tag1,tag3"]'
+        type: string # containing Json-formatted array of strings, e.g. "['', 'tag1', 'tag2', 'tag1,tag3']"
 
 jobs:
   tests-and-builds:
@@ -25,17 +25,11 @@ jobs:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v4
 
-      - name: Install mockgen
-        if: ${{ matrix == toJson(matrix)[0] }}
-        run: go install github.com/golang/mock/mockgen@latest
-
-      - name: Run go generate
-        if: ${{ matrix == toJson(matrix)[0] }}
-        run: go generate ./...
-
       - name: Check for go generate changes
-        if: ${{ matrix == toJson(matrix)[0] }}
+        if: ${{ matrix.build-tags == fromJson(inputs.build-tags[0]) }}
         run: |
+          go install github.com/golang/mock/mockgen@latest
+          go generate ./...
           if [[ -n "$(git status --porcelain)" ]]; then
             echo "Changes were found after running go generate. Please run it and commit the changes."
             git diff
