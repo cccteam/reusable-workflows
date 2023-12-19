@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        build-tags: fromJson(${{ inputs.build-tags }})
+        build-tag: fromJson(${{ inputs.build-tags }})
     steps:
       - name: Set up Go ${{ inputs.go-version }}
         uses: actions/setup-go@v4
@@ -26,7 +26,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Check for go generate changes
-        if: ${{ matrix.build-tags == fromJson(inputs.build-tags[0]) }}
+        if: ${{ matrix.build-tag == fromJson(inputs.build-tags)[0] }}
         run: |
           go install github.com/golang/mock/mockgen@latest
           go generate ./...
@@ -37,10 +37,10 @@ jobs:
           fi
 
       - name: Run tests with race detection
-        run: go test ${{ matrix.build-tags != '' && format('-tags {0}', matrix.build-tags) || '' }} -v -race ./...
+        run: go test ${{ matrix.build-tag != '' && format('-tags {0}', matrix.build-tag) || '' }} -v -race ./...
 
       - name: Run build
-        run: go build ${{ matrix.build-tags != '' && format('-tags {0}', matrix.build-tags) || '' }}
+        run: go build ${{ matrix.build-tag != '' && format('-tags {0}', matrix.build-tag) || '' }}
 
   govulncheck:
     runs-on: ubuntu-latest
