@@ -7,7 +7,7 @@ on:
         type: string
       build-tags:
         required: true
-        type: string # containing Json-formatted array of strings, e.g. "['', 'tag1', 'tag2', 'tag1,tag3']"
+        type: string # containing Json-formatted array of strings, e.g. '["", "tag1", "tag2", "tag1,tag3"]'
 
 jobs:
   go-generate-diff:
