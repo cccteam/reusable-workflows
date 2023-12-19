@@ -1,4 +1,12 @@
-# NOTE: This workflow template has required inputs. Refer to the "inputs" section below.
+# This template is designed to be used in repositories that contain Go code.
+#
+# The following jobs are included:
+# - go-generate-diff: Checks if files generated via 'go generate' are up-to-date
+# - tests-and-builds: Runs all tests and builds the code
+# - govulncheck: Checks for known vulnerabilities in the Go dependencies
+# - linter: Runs golangci-lint
+#
+# NOTE: Certain inputs are required, as detailed in the "inputs" section below.
 
 name: Golang Workflow Template
 on:
