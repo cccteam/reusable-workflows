@@ -60,6 +60,7 @@ jobs:
         run: go build ${{ matrix.build-tag != '' && format('-tags {0}', matrix.build-tag) || '' }}
 
   govulncheck:
+    name: Go Vulnerability Check
     runs-on: ubuntu-latest
     steps:
       # NOTE: Repo checkout and go setup are handled within 'govulncheck-action'
@@ -69,7 +70,11 @@ jobs:
           go-package: ./...
 
   linter:
+    name: Run golangci-lint
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        build-tag: ${{ fromJson(inputs.build-tags) }}
     steps:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v4
@@ -82,7 +87,14 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
         with:
+          # Required: the version of golangci-lint is required and must be specified without patch version: we always use the latest patch version.
           version: v1.54
+
+          args: ${{ matrix.build-tag != '' && format('--build-tags {0}', matrix.build-tag) || '' }}
+
+          # Optional: show only new issues if it's a pull request. The default value is `false`.
           only-new-issues: true
-          skip-pkg-cache: true # caching handled by actions/setup-go (above)
+
+          # caching handled by actions/setup-go (above)
+          skip-pkg-cache: true
           skip-build-cache: true
