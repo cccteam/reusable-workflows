@@ -60,7 +60,11 @@ jobs:
   govulncheck:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-go@v4
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v4
+
+      - name: Set up Go ${{ inputs.go-version }}
+        uses: actions/setup-go@v4
         with:
           go-version: ${{ inputs.go-version }}
 
@@ -72,11 +76,13 @@ jobs:
   linter:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-go@v4
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v4
+
+      - name: Set up Go ${{ inputs.go-version }}
+        uses: actions/setup-go@v4
         with:
           go-version: ${{ inputs.go-version }}
-
-      - uses: actions/checkout@v4
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
