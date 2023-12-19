@@ -85,4 +85,4 @@ jobs:
           version: v1.54
           only-new-issues: true
           skip-pkg-cache: true # caching handled by actions/setup-go (above)
-          skip-build-cache: true # caching handled by actions/setup-go (above)
+          skip-build-cache: true
