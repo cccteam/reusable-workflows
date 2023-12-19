@@ -79,11 +79,7 @@ jobs:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v4
 
-      - name: Set up Go ${{ inputs.go-version }}
-        uses: actions/setup-go@v4
-        with:
-          go-version: ${{ inputs.go-version }}
-
+        #Note: actions/setup-go@v4 is part of golangci/golangci-lint-action (see below)
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
         with:
