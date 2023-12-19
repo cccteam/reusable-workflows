@@ -41,7 +41,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        build-tag: fromJson(${{ inputs.build-tags }})
+        build-tag: ${{ fromJson(inputs.build-tags) }}
     steps:
       - name: Set up Go ${{ inputs.go-version }}
         uses: actions/setup-go@v4
