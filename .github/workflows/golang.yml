@@ -14,13 +14,13 @@ jobs:
     name: Check for go generate changes
     runs-on: ubuntu-latest
     steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v4
+
       - name: Set up Go ${{ inputs.go-version }}
         uses: actions/setup-go@v4
         with:
           go-version: ${{ inputs.go-version }}
-
-      - name: Check out code into the Go module directory
-        uses: actions/checkout@v4
 
       - name: Install mockgen
         run: go install go.uber.org/mock/mockgen@latest
@@ -43,6 +43,9 @@ jobs:
       matrix:
         build-tag: ${{ fromJson(inputs.build-tags) }}
     steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v4
+
       - name: Set up Go ${{ inputs.go-version }}
         uses: actions/setup-go@v4
         with:
