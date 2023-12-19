@@ -10,7 +10,7 @@ on:
         type: string # containing Json-formatted array of strings, e.g. '["", "tag1", "tag2", "tag1,tag3"]'
 
 jobs:
-  test:
+  tests-and-builds:
     name: Run tests and builds
     runs-on: ubuntu-latest
     strategy:
@@ -60,7 +60,7 @@ jobs:
           go-version-input: ${{ inputs.go-version }}
           go-package: ./...
 
-  golangci:
+  linter:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/setup-go@v4
