@@ -22,13 +22,17 @@ jobs:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v4
 
+      - name: Install mockgen
+        run: go install go.uber.org/mock/mockgen@latest
+
+      - name: Run go generate
+        run: go generate ./...
+
       - name: Check for go generate changes
         run: |
-          go install github.com/golang/mock/mockgen@latest
-          go generate ./...
           if [[ -n "$(git status --porcelain)" ]]; then
             echo "Changes were found after running go generate. Please run it and commit the changes."
-            git diff
+            git diff # This will show the changes in the Action's log
             exit 1
           fi
 
