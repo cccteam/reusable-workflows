@@ -1,0 +1,108 @@
+# This Continuous Integration (CI) workflow template can be used in repositories that contain Go code.
+#
+# The following jobs are included:
+#  * go-generate-diff: Checks if files generated via 'go generate' are up-to-date
+#  * tests-and-builds: Runs all tests and builds the code
+#  * govulncheck: Checks for known vulnerabilities in the Go dependencies
+#  * linter: Runs golangci-lint
+#
+# NOTE: Certain inputs are required, as detailed in the "inputs" section below.
+
+name: Golang CI Workflow Template
+on:
+  workflow_call:
+    inputs:
+      go-version:
+        required: true
+        type: string
+      build-tags:
+        required: true
+        type: string # containing Json-formatted array of strings, e.g. '["", "tag1", "tag2", "tag1,tag3"]'
+
+jobs:
+  go-generate-diff:
+    name: Check for go generate changes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v4
+
+      - name: Set up Go ${{ inputs.go-version }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ inputs.go-version }}
+
+      - name: Install mockgen
+        run: go install go.uber.org/mock/mockgen@latest
+
+      - name: Run go generate
+        run: go generate ./...
+
+      - name: Check for go generate changes
+        run: |
+          if [[ -n "$(git status --porcelain)" ]]; then
+            echo "Changes were found after running go generate. Please run it and commit the changes."
+            git diff # This will show the changes in the Action's log
+            exit 1
+          fi
+
+  tests-and-builds:
+    name: Run tests and builds
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        build-tag: ${{ fromJson(inputs.build-tags) }}
+    steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v4
+
+      - name: Set up Go ${{ inputs.go-version }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ inputs.go-version }}
+
+      - name: Run tests with race detection
+        run: go test ${{ matrix.build-tag != '' && format('-tags {0}', matrix.build-tag) || '' }} -v -race ./...
+
+      - name: Run build
+        run: go build ${{ matrix.build-tag != '' && format('-tags {0}', matrix.build-tag) || '' }}
+
+  govulncheck:
+    name: Go Vulnerability Check
+    runs-on: ubuntu-latest
+    steps:
+      # NOTE: Repo checkout and go setup are handled within 'govulncheck-action'
+      - uses: golang/govulncheck-action@v1
+        with:
+          go-version-input: ${{ inputs.go-version }}
+          go-package: ./...
+
+  linter:
+    name: Run golangci-lint
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        build-tag: ${{ fromJson(inputs.build-tags) }}
+    steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v4
+
+      - name: Set up Go ${{ inputs.go-version }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ inputs.go-version }}
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          # Required: the version of golangci-lint is required and must be specified without patch version: we always use the latest patch version.
+          version: v1.54
+
+          args: ${{ matrix.build-tag != '' && format('--build-tags {0}', matrix.build-tag) || '' }}
+
+          # Optional: show only new issues if it's a pull request. The default value is `false`.
+          only-new-issues: true
+
+          # caching handled by actions/setup-go (above)
+          skip-pkg-cache: true
+          skip-build-cache: true
