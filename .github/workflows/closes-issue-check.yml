@@ -1,4 +1,4 @@
-# This workflow is intended for use in repositories that utilize GitHub Projects.
+# This workflow is designed for repositories that utilize GitHub issues.
 #   It verifies that the pull request will close at least one issue upon merge, and
 #   will fail if this is not the case.
 
