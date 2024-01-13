@@ -12,6 +12,10 @@ name: Golang CI Workflow Template
 on:
   workflow_call:
     inputs:
+      working-directory:
+        required: false
+        type: string
+        default: "."
       go-version:
         required: true
         type: string
@@ -63,9 +67,11 @@ jobs:
 
       - name: Run tests with race detection
         run: go test ${{ matrix.build-tag != '' && format('-tags {0}', matrix.build-tag) || '' }} -v -race ./...
+        working-directory: ${{ inputs.working-directory }}
 
       - name: Run build
         run: go build ${{ matrix.build-tag != '' && format('-tags {0}', matrix.build-tag) || '' }}
+        working-directory: ${{ inputs.working-directory }}
 
   govulncheck:
     name: Go Vulnerability Check
@@ -76,6 +82,7 @@ jobs:
         with:
           go-version-input: ${{ inputs.go-version }}
           go-package: ./...
+          work-dir: ${{ inputs.working-directory }}
 
   linter:
     name: Run golangci-lint
@@ -106,3 +113,4 @@ jobs:
           # caching handled by actions/setup-go (above)
           skip-pkg-cache: true
           skip-build-cache: true
+          working-directory: ${{ inputs.working-directory }}
