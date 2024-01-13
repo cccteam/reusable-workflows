@@ -35,6 +35,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ inputs.go-version }}
+          cache-dependency-path: ${{ inputs.working-directory }}/go.sum
 
       - name: Install mockgen
         run: go install go.uber.org/mock/mockgen@latest
@@ -64,6 +65,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ inputs.go-version }}
+          cache-dependency-path: ${{ inputs.working-directory }}/go.sum
 
       - name: Run tests with race detection
         run: go test ${{ matrix.build-tag != '' && format('-tags {0}', matrix.build-tag) || '' }} -v -race ./...
@@ -98,6 +100,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ inputs.go-version }}
+          cache-dependency-path: ${{ inputs.working-directory }}/go.sum
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
