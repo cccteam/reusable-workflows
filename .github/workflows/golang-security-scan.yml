@@ -8,6 +8,7 @@ on:
       slack-channel-id:
         required: true
         type: string
+        description: Channel ID for sending Slack notifications for a failed scan
       execute-trivy-scan:
         required: false
         type: boolean
@@ -46,7 +47,6 @@ jobs:
 
       - name: Build docker image
         run: docker build --build-arg APP_DEPLOYMENT=Prod -t ga-image-app:latest .
-        working-directory: ${{ inputs.working-directory }}
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
@@ -113,4 +113,4 @@ jobs:
           channel-id: ${{ inputs.slack-channel-id }}
           slack-message: "URGENT! The security scan failed. Check the logs at ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
         env:
-          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_BOT_TOKEN: ${{ inputs.SLACK_BOT_TOKEN }}
