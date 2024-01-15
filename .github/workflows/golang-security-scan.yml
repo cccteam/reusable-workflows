@@ -1,0 +1,110 @@
+name: Golang Security Scan Template
+on:
+  workflow_call:
+    inputs:
+      go-version:
+        required: true
+        type: string
+      slack-channel-id:
+        required: true
+        type: string
+      execute-trivy-scan:
+        required: false
+        type: boolean
+        default: true
+    secrets:
+      SLACK_BOT_TOKEN:
+        required: true
+        description: Token for sending Slack notifications for a failed scan
+
+jobs:
+  govulncheck:
+    name: Go Vulnerability Check
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: golang/govulncheck-action@v1
+        with:
+          go-version-input: ${{ inputs.go-version }}
+          go-package: ./...
+    outputs:
+      status: ${{ job.status }}
+
+  trivyscan:
+    name: Trivy Scan
+    runs-on: ubuntu-latest
+    if: ${{ inputs.execute-trivy-scan }}
+    continue-on-error: true
+    steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v4
+
+      - name: Build docker image
+        run: docker build --build-arg APP_DEPLOYMENT=Prod -t ga-image-app:latest .
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "ga-image-app:latest"
+          format: "table"
+          exit-code: "1"
+          ignore-unfixed: true
+          vuln-type: "os,library"
+          severity: "MEDIUM,HIGH,CRITICAL"
+    outputs:
+      status: ${{ job.status }}
+
+  create_issues:
+    name: Create issues for failed jobs
+    needs: [govulncheck, trivyscan]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v5
+        with:
+          script: |
+            async function createIssue(jobName) {
+              const title = `${jobName} job failed in Security Scan workflow`;
+              const label = jobName;
+
+              const { data: issues } = await github.rest.issues.listForRepo({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                state: "open",
+                labels: `automated issue,${label}`
+              });
+              
+              const createNewIssue = !issues.find(issue => issue.title === title);
+              if (createNewIssue) {
+                const issue = {
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  title: title,
+                  body: `The ${jobName} job failed in the Security Scan workflow. Please investigate.`,
+                  labels: ["automated issue", label]
+                };
+                github.rest.issues.create(issue).then(createdIssue => {
+                  console.log(`Issue ${createdIssue.data.number} was created for failed job: ${jobName}.`);
+                });
+              }
+            }
+
+            if ('${{ needs.govulncheck.outputs.status }}' == 'failure') {
+              createIssue("govulncheck");
+            }
+
+            if ('${{ needs.trivyscan.outputs.status }}' == 'failure') {
+              createIssue("trivyscan");
+            }
+
+  slack_notification:
+    name: Send Slack notification for failed jobs
+    needs: [govulncheck, trivyscan]
+    if: needs.govulncheck.outputs.status == 'failure' || needs.trivyscan.outputs.status == 'failure'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: slackapi/slack-github-action@v1.24.0
+        with:
+          channel-id: ${{ inputs.slack-channel-id }}
+          slack-message: "URGENT! The security scan failed. Check the logs at ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
