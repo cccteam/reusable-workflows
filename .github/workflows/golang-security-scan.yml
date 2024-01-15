@@ -12,6 +12,10 @@ on:
         required: false
         type: boolean
         default: true
+      working-directory:
+        required: false
+        type: string
+        default: .
     secrets:
       SLACK_BOT_TOKEN:
         required: true
@@ -27,6 +31,7 @@ jobs:
         with:
           go-version-input: ${{ inputs.go-version }}
           go-package: ./...
+          work-dir: ${{ inputs.working-directory }}
     outputs:
       status: ${{ job.status }}
 
@@ -41,6 +46,7 @@ jobs:
 
       - name: Build docker image
         run: docker build --build-arg APP_DEPLOYMENT=Prod -t ga-image-app:latest .
+        working-directory: ${{ inputs.working-directory }}
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
