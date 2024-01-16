@@ -111,6 +111,6 @@ jobs:
       - uses: slackapi/slack-github-action@v1.24.0
         with:
           channel-id: ${{ inputs.slack-channel-id }}
-          slack-message: "URGENT! The security scan failed. Check the logs at ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          slack-message: "URGENT! The security scan failed for the *${{ github.repository }}* repository. Check the logs at ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
