@@ -67,7 +67,7 @@ jobs:
     needs: [govulncheck, trivyscan]
     if: always() && (needs.govulncheck.result == 'failure' || needs.trivyscan.result == 'failure')
     steps:
-      - uses: actions/github-script@v5
+      - uses: actions/github-script@v7
         with:
           script: |
             async function createIssue(jobName) {
