@@ -40,8 +40,6 @@ jobs:
           go-version-input: ${{ inputs.go-version }}
           go-package: ./...
           work-dir: ${{ inputs.working-directory }}
-    outputs:
-      status: ${{ job.status }}
 
   trivyscan:
     name: Trivy Scan
@@ -64,13 +62,12 @@ jobs:
           ignore-unfixed: true
           vuln-type: "os,library"
           severity: "MEDIUM,HIGH,CRITICAL"
-    outputs:
-      status: ${{ job.status }}
 
   create_issues:
     name: Create issues for failed jobs
-    needs: [govulncheck, trivyscan]
     runs-on: ubuntu-latest
+    needs: [govulncheck, trivyscan]
+    if: always() && (needs.govulncheck.result == 'failure' || needs.trivyscan.result == 'failure')
     steps:
       - uses: actions/github-script@v5
         with:
@@ -101,19 +98,19 @@ jobs:
               }
             }
 
-            if ('${{ needs.govulncheck.outputs.status }}' == 'failure') {
+            if ('${{ needs.govulncheck.result }}' == 'failure') {
               createIssue("govulncheck");
             }
 
-            if ('${{ needs.trivyscan.outputs.status }}' == 'failure') {
+            if ('${{ needs.trivyscan.result }}' == 'failure') {
               createIssue("trivyscan");
             }
 
   slack_notification:
     name: Send Slack notification for failed jobs
-    needs: [govulncheck, trivyscan]
-    if: needs.govulncheck.outputs.status == 'failure' || needs.trivyscan.outputs.status == 'failure'
     runs-on: ubuntu-latest
+    needs: [govulncheck, trivyscan]
+    if: always() && (needs.govulncheck.result == 'failure' || needs.trivyscan.result == 'failure')
     steps:
       - uses: slackapi/slack-github-action@v1.24.0
         with:
