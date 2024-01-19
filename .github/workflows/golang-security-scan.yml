@@ -61,7 +61,9 @@ jobs:
           echo "::set-output name=build-args::$build_args"
 
       - name: Build docker image
-        run: docker build ${{ steps.prepare-build-args.outputs.build-args }} -t ${{ github.repository }}:latest .
+        run: |
+          repo_name=$(echo "${{ github.repository }}" | awk '{print tolower($0)}')
+          docker build ${{ steps.prepare-build-args.outputs.build-args }} -t $repo_name:latest .
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
