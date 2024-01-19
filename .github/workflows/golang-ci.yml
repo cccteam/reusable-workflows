@@ -22,6 +22,10 @@ on:
       build-tags:
         required: true
         type: string # containing Json-formatted array of strings, e.g. '["", "tag1", "tag2", "tag1,tag3"]'
+      golangci-lint-version:
+        required: false
+        type: string
+        default: "v1.55"
 
 jobs:
   go-generate-diff:
@@ -106,7 +110,7 @@ jobs:
         uses: golangci/golangci-lint-action@v3
         with:
           # Required: the version of golangci-lint is required and must be specified without patch version: we always use the latest patch version.
-          version: v1.54
+          version: ${{ inputs.golangci-lint-version }}
 
           args: ${{ matrix.build-tag != '' && format('--build-tags {0}', matrix.build-tag) || '' }}
 
