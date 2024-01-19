@@ -24,6 +24,11 @@ on:
         required: false
         type: string
         default: .
+      docker-build-args:
+        required: false
+        type: string
+        default: "[]" # empty array
+        description: Json-formatted array of strings to pass to the docker build command as build args. e.g. '["arg1", "arg2"]'
     secrets:
       SLACK_BOT_TOKEN:
         required: true
@@ -48,8 +53,15 @@ jobs:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v4
 
+      - name: Prepare Docker build args
+        id: prepare-build-args
+        run: |
+          build_args="${{ inputs.docker-build-args }}"
+          build_args=$(echo $build_args | jq -r '.[] | "--build-arg " + .')
+          echo "::set-output name=build-args::$build_args"
+
       - name: Build docker image
-        run: docker build --build-arg APP_DEPLOYMENT=Prod -t ${{ github.repository }}:latest .
+        run: docker build ${{ steps.prepare-build-args.outputs.build-args }} -t ${{ github.repository }}:latest .
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
