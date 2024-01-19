@@ -56,7 +56,7 @@ jobs:
       - name: Prepare Docker build args
         id: prepare-build-args
         run: |
-          build_args="${{ inputs.docker-build-args }}"
+          build_args='${{ inputs.docker-build-args }}'
           build_args=$(echo $build_args | jq -r '.[] | "--build-arg " + .')
           echo "::set-output name=build-args::$build_args"
 
