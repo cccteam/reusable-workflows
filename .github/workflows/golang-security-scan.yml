@@ -24,6 +24,11 @@ on:
         required: false
         type: string
         default: .
+      docker-build-args:
+        required: false
+        type: string
+        default: "[]" # empty array
+        description: Json-formatted array of strings to pass to the docker build command as build args. e.g. '["arg1", "arg2"]'
     secrets:
       SLACK_BOT_TOKEN:
         required: true
@@ -33,46 +38,51 @@ jobs:
   govulncheck:
     name: Go Vulnerability Check
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: golang/govulncheck-action@v1
         with:
           go-version-input: ${{ inputs.go-version }}
           go-package: ./...
           work-dir: ${{ inputs.working-directory }}
-    outputs:
-      status: ${{ job.status }}
 
   trivyscan:
     name: Trivy Scan
     runs-on: ubuntu-latest
     if: ${{ inputs.execute-trivy-scan }}
-    continue-on-error: true
     steps:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v4
 
+      - name: Prepare Docker build args
+        id: prepare-build-args
+        run: |
+          build_args='${{ inputs.docker-build-args }}'
+          build_args=$(echo $build_args | jq -r '.[] | "--build-arg " + .')
+          echo "BUILD_ARGS=$build_args" >> $GITHUB_ENV
+
       - name: Build docker image
-        run: docker build --build-arg APP_DEPLOYMENT=Prod -t ga-image-app:latest .
+        run: |
+          repo_name=$(echo "${{ github.repository }}" | awk '{print tolower($0)}')
+          echo "REPO_NAME=$repo_name" >> $GITHUB_ENV
+          docker build $BUILD_ARGS -t $repo_name:latest .
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: "ga-image-app:latest"
+          image-ref: "${{ env.REPO_NAME }}:latest"
           format: "table"
           exit-code: "1"
           ignore-unfixed: true
           vuln-type: "os,library"
           severity: "MEDIUM,HIGH,CRITICAL"
-    outputs:
-      status: ${{ job.status }}
 
   create_issues:
     name: Create issues for failed jobs
-    needs: [govulncheck, trivyscan]
     runs-on: ubuntu-latest
+    needs: [govulncheck, trivyscan]
+    if: always() && (needs.govulncheck.result == 'failure' || needs.trivyscan.result == 'failure')
     steps:
-      - uses: actions/github-script@v5
+      - uses: actions/github-script@v7
         with:
           script: |
             async function createIssue(jobName) {
@@ -101,19 +111,19 @@ jobs:
               }
             }
 
-            if ('${{ needs.govulncheck.outputs.status }}' == 'failure') {
+            if ('${{ needs.govulncheck.result }}' == 'failure') {
               createIssue("govulncheck");
             }
 
-            if ('${{ needs.trivyscan.outputs.status }}' == 'failure') {
+            if ('${{ needs.trivyscan.result }}' == 'failure') {
               createIssue("trivyscan");
             }
 
   slack_notification:
     name: Send Slack notification for failed jobs
-    needs: [govulncheck, trivyscan]
-    if: needs.govulncheck.outputs.status == 'failure' || needs.trivyscan.outputs.status == 'failure'
     runs-on: ubuntu-latest
+    needs: [govulncheck, trivyscan]
+    if: always() && (needs.govulncheck.result == 'failure' || needs.trivyscan.result == 'failure')
     steps:
       - uses: slackapi/slack-github-action@v1.24.0
         with:
