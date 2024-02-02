@@ -72,7 +72,6 @@ jobs:
           image-ref: "${{ env.REPO_NAME }}:latest"
           format: "table"
           exit-code: "1"
-          ignore-unfixed: true
           vuln-type: "os,library"
           severity: "MEDIUM,HIGH,CRITICAL"
 
