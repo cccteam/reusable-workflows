@@ -57,7 +57,7 @@ jobs:
         id: prepare-build-args
         run: |
           build_args='${{ inputs.docker-build-args }}'
-          build_args=$(echo $build_args | jq -r '.[] | "--build-arg " + .')
+          build_args=$(echo $build_args | jq -r '.[] | "--build-arg " + .' | xargs)
           echo "BUILD_ARGS=$build_args" >> $GITHUB_ENV
 
       - name: Build docker image
@@ -72,9 +72,8 @@ jobs:
           image-ref: "${{ env.REPO_NAME }}:latest"
           format: "table"
           exit-code: "1"
-          ignore-unfixed: true
           vuln-type: "os,library"
-          severity: "MEDIUM,HIGH,CRITICAL"
+          severity: "LOW,MEDIUM,HIGH,CRITICAL"
 
   create_issues:
     name: Create issues for failed jobs
