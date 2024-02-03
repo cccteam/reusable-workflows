@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/cccteam/github-workflows/compare/v1.0.0...v1.0.1) (2024-02-03)
+
+
+### Bug Fixes
+
+* Do not ignore unfixed in security scan ([#11](https://github.com/cccteam/github-workflows/issues/11)) ([141661b](https://github.com/cccteam/github-workflows/commit/141661bb9d1eb3adbfe406b8bf0ee6605baf9933))
+
 ## [1.0.0](https://github.com/cccteam/github-workflows/compare/v0.0.1...v1.0.0) (2024-01-30)
 
 
