@@ -1,8 +1,8 @@
 # This Continuous Integration (CI) workflow template can be used in repositories that include a Dockerfile.
 #
 # The included jobs are:
-#  - lint_and_build: Lints the Dockerfile using the hadolint linter and builds the Docker image.
-#  - trivy_scan: Scans the Docker image for vulnerabilities using the Trivy vulnerability scanner.
+#  - lint-and-build: Lints the Dockerfile using the hadolint linter and builds the Docker image.
+#  - trivy-scan: Scans the Docker image for vulnerabilities using the Trivy vulnerability scanner.
 
 name: Build & Scan Docker Image
 on:
@@ -33,10 +33,10 @@ on:
         description: Comma-separated list of severities to fail the workflow on. e.g. 'LOW,MEDIUM,HIGH,CRITICAL'
 
 jobs:
-  lint_and_build:
+  lint-and-build:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out code into the Go module directory
+      - name: Check out code repository
         uses: actions/checkout@v4
 
       - name: Lint Dockerfile
@@ -57,7 +57,7 @@ jobs:
           echo "REPO_NAME=$repo_name" >> $GITHUB_ENV
           docker build $BUILD_ARGS -t $repo_name:latest .
 
-  trivy_scan:
+  trivy-scan:
     runs-on: ubuntu-latest
     steps:
       - uses: aquasecurity/trivy-action@master
