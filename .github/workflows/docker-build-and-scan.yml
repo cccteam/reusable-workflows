@@ -8,9 +8,10 @@ name: Build & Scan Docker Image
 on:
   workflow_call:
     inputs:
-      go-version:
+      dockerfile:
         required: true
         type: string
+        description: "Path to the Dockerfile to lint and build"
       docker-build-args:
         required: false
         type: string
@@ -42,7 +43,7 @@ jobs:
       - name: Lint Dockerfile
         uses: hadolint/hadolint-action@v3.1.0
         with:
-          dockerfile: "Dockerfile"
+          dockerfile: "${{ inputs.dockerfile }}"
 
       - name: Prepare Docker build args
         id: prepare-build-args
