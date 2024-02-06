@@ -16,6 +16,21 @@ on:
         type: string
         default: "[]" # empty array
         description: Json-formatted array of strings to pass to the docker build command as build args. e.g. '["arg1", "arg2"]'
+      vuln-types:
+        required: false
+        type: string
+        default: "os,library"
+        description: Comma-separated list of vulnerability types to scan for. e.g. 'os,library'
+      ignore-unfixed:
+        required: false
+        type: boolean
+        default: false
+        description: Ignore unfixed vulnerabilities
+      severity:
+        required: false
+        type: string
+        default: "LOW,MEDIUM,HIGH,CRITICAL"
+        description: Comma-separated list of severities to fail the workflow on. e.g. 'LOW,MEDIUM,HIGH,CRITICAL'
 
 jobs:
   lint_and_build:
@@ -50,6 +65,6 @@ jobs:
           image-ref: "${{ env.REPO_NAME }}:latest"
           format: "table"
           exit-code: "1"
-          ignore-unfixed: true
-          vuln-type: "os,library"
-          severity: "LOW,MEDIUM,HIGH,CRITICAL"
+          ignore-unfixed: "${{ inputs.ignore-unfixed }}"
+          vuln-type: "${{ inputs.vuln-types }}"
+          severity: "${{ inputs.severity }}"
