@@ -1,9 +1,9 @@
-# This Continuous Integration (CI) workflow template can be used in repositories that include a Docker build file.
+# This reusable workflow can be used in repositories that include a Docker build file to perform the following actions:
+#  - Lint the Docker file via 'hadolint'.
+#  - Build the Docker image.
+#  - Scan the Docker image for vulnerabilities via the 'Trivy' scanner.
 #
-# The following actions are performed by this workflow:
-#  - The Docker file is linted via 'hadolint'.
-#  - The Docker image is built.
-#  - The Trivy vulnerability scanner is run against the built image.
+# Note: Refer to the "inputs" section below to customize the behavior of the workflow.
 
 name: Build & Scan Docker Image
 on:
