@@ -1,16 +1,18 @@
-# This Continuous Integration (CI) workflow template can be used in repositories that include a Dockerfile.
+# This Continuous Integration (CI) workflow template can be used in repositories that include a Docker build file.
 #
-# The included jobs are:
-#  - lint-and-build: Lints the Dockerfile using the hadolint linter and builds the Docker image.
-#  - trivy-scan: Scans the Docker image for vulnerabilities using the Trivy vulnerability scanner.
+# The following actions are performed by this workflow:
+#  - The Docker file is linted via 'hadolint'.
+#  - The Docker image is built.
+#  - The Trivy vulnerability scanner is run against the built image.
 
 name: Build & Scan Docker Image
 on:
   workflow_call:
     inputs:
       dockerfile:
-        required: true
+        required: false
         type: string
+        default: "Dockerfile"
         description: "Path to the Dockerfile to lint and build"
       docker-build-args:
         required: false
@@ -34,20 +36,19 @@ on:
         description: Comma-separated list of severities to fail the workflow on. e.g. 'LOW,MEDIUM,HIGH,CRITICAL'
 
 jobs:
-  lint-and-build:
+  docker:
+    name: Build & Scan Docker Image
     runs-on: ubuntu-latest
-    outputs:
-      repo_name: ${{ steps.build.outputs.repo_name }}
     steps:
       - name: Check out code repository
         uses: actions/checkout@v4
 
-      - name: Lint Dockerfile
+      - name: Lint docker file
         uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: "${{ inputs.dockerfile }}"
 
-      - name: Prepare Docker build args
+      - name: Prepare docker build args
         id: prepare-build-args
         run: |
           build_args='${{ inputs.docker-build-args }}'
@@ -58,16 +59,13 @@ jobs:
         id: build
         run: |
           repo_name=$(echo "${{ github.repository }}" | awk '{print tolower($0)}')
-          echo "REPO_NAME=$repo_name" >> $GITHUB_OUTPUT
+          echo "REPO_NAME=$repo_name" >> $GITHUB_ENV
           docker build $BUILD_ARGS -t $repo_name:latest .
 
-  trivy-scan:
-    runs-on: ubuntu-latest
-    needs: lint-and-build
-    steps:
-      - uses: aquasecurity/trivy-action@master
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
         with:
-          image-ref: "${{ needs.lint-and-build.outputs.repo_name }}:latest"
+          image-ref: "${{ env.REPO_NAME }}:latest"
           format: "table"
           exit-code: "1"
           ignore-unfixed: "${{ inputs.ignore-unfixed }}"
