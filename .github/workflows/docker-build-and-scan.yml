@@ -33,7 +33,7 @@ on:
         required: false
         type: string
         default: "LOW,MEDIUM,HIGH,CRITICAL"
-        description: Comma-separated list of severities to fail the workflow on. e.g. 'LOW,MEDIUM,HIGH,CRITICAL'
+        description: Comma-separated list of vulnerability severities to scan for. e.g. 'LOW,MEDIUM,HIGH,CRITICAL'
 
 jobs:
   docker:
