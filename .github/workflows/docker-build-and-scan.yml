@@ -1,0 +1,73 @@
+# This reusable workflow can be used in repositories that include a Dockerfile to perform the following actions:
+#  - Lint the Docker file via 'hadolint'.
+#  - Build the Docker image.
+#  - Scan the Docker image for vulnerabilities via the 'Trivy' scanner.
+#
+# Note: Refer to the "inputs" section below to customize the behavior of the workflow.
+
+name: Build & Scan Docker Image
+on:
+  workflow_call:
+    inputs:
+      dockerfile:
+        required: false
+        type: string
+        default: "Dockerfile"
+        description: "Path to the relevant Dockerfile"
+      docker-build-args:
+        required: false
+        type: string
+        default: "[]" # empty array
+        description: Json-formatted array of strings to pass to the docker build command as build args. e.g. '["arg1", "arg2"]'
+      vuln-types:
+        required: false
+        type: string
+        default: "os,library"
+        description: Comma-separated list of vulnerability types to scan for. e.g. 'os,library'
+      ignore-unfixed:
+        required: false
+        type: boolean
+        default: false
+        description: Ignore unfixed vulnerabilities
+      severity:
+        required: false
+        type: string
+        default: "LOW,MEDIUM,HIGH,CRITICAL"
+        description: Comma-separated list of vulnerability severities to scan for. e.g. 'LOW,MEDIUM,HIGH,CRITICAL'
+
+jobs:
+  docker:
+    name: Build & Scan Docker Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code repository
+        uses: actions/checkout@v4
+
+      - name: Lint docker file
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: "${{ inputs.dockerfile }}"
+
+      - name: Prepare docker build args
+        id: prepare-build-args
+        run: |
+          build_args='${{ inputs.docker-build-args }}'
+          build_args=$(echo $build_args | jq -r '.[] | "--build-arg " + .' | xargs)
+          echo "BUILD_ARGS=$build_args" >> $GITHUB_ENV
+
+      - name: Build docker image
+        id: build
+        run: |
+          repo_name=$(echo "${{ github.repository }}" | awk '{print tolower($0)}')
+          echo "REPO_NAME=$repo_name" >> $GITHUB_ENV
+          docker build $BUILD_ARGS -t $repo_name:latest .
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "${{ env.REPO_NAME }}:latest"
+          format: "table"
+          exit-code: "1"
+          ignore-unfixed: "${{ inputs.ignore-unfixed }}"
+          vuln-type: "${{ inputs.vuln-types }}"
+          severity: "${{ inputs.severity }}"
