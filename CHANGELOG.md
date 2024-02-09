@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/cccteam/github-workflows/compare/v1.0.1...v1.1.0) (2024-02-09)
+
+
+### Features
+
+* Add workflow for building and scanning a Docker image ([#14](https://github.com/cccteam/github-workflows/issues/14)) ([89e7e0a](https://github.com/cccteam/github-workflows/commit/89e7e0ada4970ca87320714651a33289dc65f8e9))
+
 ## [1.0.1](https://github.com/cccteam/github-workflows/compare/v1.0.0...v1.0.1) (2024-02-03)
 
 
