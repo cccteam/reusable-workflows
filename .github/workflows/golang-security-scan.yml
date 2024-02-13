@@ -13,9 +13,9 @@ on:
         required: true
         type: string
       slack-channel-id:
-        required: true
+        required: false
         type: string
-        description: Channel ID for sending Slack notifications for a failed scan
+        description: Overrides secrets.SLACK_CHANNEL_ID as the channel ID for sending Slack notifications for a failed scan.
       execute-trivy-scan:
         required: false
         type: boolean
@@ -33,6 +33,9 @@ on:
       SLACK_BOT_TOKEN:
         required: true
         description: Token for sending Slack notifications for a failed scan
+      SLACK_CHANNEL_ID:
+        required: true
+        description: Channel ID for sending Slack notifications for a failed scan. This can be overridden by the 'slack-channel-id' input.
 
 jobs:
   govulncheck:
@@ -126,7 +129,7 @@ jobs:
     steps:
       - uses: slackapi/slack-github-action@v1.25.0
         with:
-          channel-id: ${{ inputs.slack-channel-id }}
+          channel-id: ${{ inputs.slack-channel-id || secrets.SLACK_CHANNEL_ID }}
           slack-message: "URGENT! The security scan failed for the *${{ github.repository }}* repository. Check the logs at ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
