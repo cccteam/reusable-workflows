@@ -196,6 +196,7 @@ jobs:
 
       - name: Update or Create Issue
         if: steps.setup.outputs.should_run == 'true'
+        id: create_issue
         uses: peter-evans/create-issue-from-file@v5
         with:
           title: ${{ env.ISSUE_TITLE }}
@@ -203,15 +204,70 @@ jobs:
           labels: vulnerability,${{ matrix.label }}
           issue-number: ${{ steps.search_issue.outputs.issue_number }}
 
+      - name: Get issue URL
+        id: get_issue_url
+        if: steps.setup.outputs.should_run == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            const issueNumber = ${{ steps.create_issue.outputs.issue-number }};
+            const issue = await github.rest.issues.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber
+            });
+            return issue.data.html_url;
+
+      - name: Write issue info to file
+        run: |
+          echo "${{ matrix.label }} issue: ${{ steps.get_issue_url.outputs }}" >> issues.txt
+
+      - name: Upload issues artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: issues
+          path: issues.txt
+
   slack_notification:
     name: Send Slack notification for failed jobs
     runs-on: ubuntu-latest
     needs: [govulncheck, trivy]
     if: always() && (needs.govulncheck.result == 'failure' || needs.trivy.result == 'failure')
     steps:
+      - name: Search for issues artifact
+        id: issues_exists
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.runId
+            });
+            const issuesExists = artifacts.data.artifacts.some(artifact => artifact.name === 'issues');
+            return issuesExists;
+
+      - name: Download issues artifact
+        if: steps.issues_exists.outputs.result == 'true'
+        uses: actions/download-artifact@v2
+        with:
+          name: issues
+
+      - name: Prepare Slack message
+        id: prepare_message
+        run: |
+          MESSAGE="URGENT! The security scan failed for the *${{ github.repository }}* repository. Check the logs at ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          if [ -f issues.txt ]; then
+            ISSUES=$(cat issues.txt)
+            MESSAGE="$MESSAGE\n$ISSUES"
+          fi
+          echo "SLACK_MESSAGE=$MESSAGE" >> $GITHUB_ENV
+
       - uses: slackapi/slack-github-action@v1.25.0
         with:
           channel-id: ${{ inputs.slack-channel-id || secrets.SLACK_CHANNEL_ID }}
-          slack-message: "URGENT! The security scan failed for the *${{ github.repository }}* repository. Check the logs at ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          slack-message: ${{ env.SLACK_MESSAGE }}
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
