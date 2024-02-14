@@ -154,7 +154,6 @@ jobs:
             fi
 
             echo "ISSUE_TITLE=$ISSUE_TITLE" >> $GITHUB_ENV
-            echo "issue_title=$ISSUE_TITLE" >> $GITHUB_OUTPUT
             echo "FILE_PATH=$FILE_PATH" >> $GITHUB_ENV
           else
             echo "should_run=false" >> $GITHUB_OUTPUT
@@ -199,7 +198,7 @@ jobs:
         if: steps.setup.outputs.should_run == 'true'
         uses: peter-evans/create-issue-from-file@v5
         with:
-          title: ${{ steps.setup.outputs.issue_title }}
+          title: ${{ env.ISSUE_TITLE }}
           content-filepath: ./formatted-results.md
           labels: vulnerability,${{ matrix.label }}
           issue-number: ${{ steps.search_issue.outputs.issue_number }}
