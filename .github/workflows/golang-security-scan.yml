@@ -217,17 +217,17 @@ jobs:
               repo: context.repo.repo,
               issue_number: issueNumber
             });
-            return issue.data.html_url;
+            return issue.data.url;
 
       - name: Write issue info to file
         run: |
-          echo "${{ matrix.label }} issue: ${{ steps.get_issue_url.outputs }}" >> issues.txt
+          echo "${{ matrix.label }} issue: ${{ steps.get_issue_url.outputs.result }}" >> ${{ matrix.label }}-issue.txt
 
-      - name: Upload issues artifact
+      - name: Upload issue artifact
         uses: actions/upload-artifact@v2
         with:
-          name: issues
-          path: issues.txt
+          name: ${{ matrix.label }}-issue
+          path: ${{ matrix.label }}-issue.txt
 
   slack_notification:
     name: Send Slack notification for failed jobs
@@ -235,8 +235,8 @@ jobs:
     needs: [govulncheck, trivy]
     if: always() && (needs.govulncheck.result == 'failure' || needs.trivy.result == 'failure')
     steps:
-      - name: Search for issues artifact
-        id: issues_exists
+      - name: Search for govulncheck issue artifact
+        id: govulncheck_issue_exists
         uses: actions/github-script@v7
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
@@ -246,22 +246,45 @@ jobs:
               repo: context.repo.repo,
               run_id: context.runId
             });
-            const issuesExists = artifacts.data.artifacts.some(artifact => artifact.name === 'issues');
+            const issuesExists = artifacts.data.artifacts.some(artifact => artifact.name === 'govulncheck-issues');
             return issuesExists;
 
-      - name: Download issues artifact
-        if: steps.issues_exists.outputs.result == 'true'
+      - name: Search for trivy issue artifact
+        id: trivy_issue_exists
+        if: ${{ inputs.execute-trivy-scan }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.runId
+            });
+            const issuesExists = artifacts.data.artifacts.some(artifact => artifact.name === 'trivy-issues');
+            return issuesExists;
+
+      - name: Download govulncheck issue artifacts
+        if: steps.govulncheck_issue_exists.outputs.result == 'true'
         uses: actions/download-artifact@v2
         with:
-          name: issues
+          name: govulncheck-issues
+
+      - name: Download trivy issue artifacts
+        if: steps.trivy_issue_exists.outputs.result == 'true'
+        uses: actions/download-artifact@v2
+        with:
+          name: trivy-issues
 
       - name: Prepare Slack message
         id: prepare_message
         run: |
           MESSAGE="URGENT! The security scan failed for the *${{ github.repository }}* repository. Check the logs at ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          if [ -f issues.txt ]; then
-            ISSUES=$(cat issues.txt)
-            MESSAGE="$MESSAGE\n$ISSUES"
+          if [ -f govulncheck-issue.txt ]; then
+            MESSAGE="$MESSAGE\n$(cat govulncheck-issue.txt)"
+          fi
+          if [ -f trivy-issue.txt ]; then
+            MESSAGE="$MESSAGE\n$(cat trivy-issue.txt)"
           fi
           echo "SLACK_MESSAGE=$MESSAGE" >> $GITHUB_ENV
 
