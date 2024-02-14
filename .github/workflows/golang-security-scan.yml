@@ -232,7 +232,7 @@ jobs:
   slack_notification:
     name: Send Slack notification for failed jobs
     runs-on: ubuntu-latest
-    needs: [govulncheck, trivy]
+    needs: [govulncheck, trivy, create_issues]
     if: always() && (needs.govulncheck.result == 'failure' || needs.trivy.result == 'failure')
     steps:
       - name: Search for govulncheck issue artifact
