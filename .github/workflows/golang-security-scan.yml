@@ -217,7 +217,7 @@ jobs:
               repo: context.repo.repo,
               issue_number: issueNumber
             });
-            return issue.data.url;
+            return issue.data.html_url;
 
       - name: Write issue info to file
         run: |
@@ -254,10 +254,12 @@ jobs:
         run: |
           MESSAGE="URGENT! The security scan failed for the *${{ github.repository }}* repository. Check the logs at ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           if [ -f govulncheck-issue.txt ]; then
-            MESSAGE="$MESSAGE\n$(cat govulncheck-issue.txt)"
+            MESSAGE="$MESSAGE
+            $(cat govulncheck-issue.txt)"
           fi
           if [ -f trivy-issue.txt ]; then
-            MESSAGE="$MESSAGE\n$(cat trivy-issue.txt)"
+            MESSAGE="$MESSAGE
+            $(cat trivy-issue.txt)"
           fi
           echo "$MESSAGE"
           echo "SLACK_MESSAGE=$MESSAGE" >> $GITHUB_ENV
