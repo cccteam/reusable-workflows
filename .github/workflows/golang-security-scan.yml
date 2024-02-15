@@ -246,8 +246,11 @@ jobs:
               repo: context.repo.repo,
               run_id: context.runId
             });
-            const issuesExists = artifacts.data.artifacts.some(artifact => artifact.name === 'govulncheck-issue');
-            return issuesExists;
+            artifacts.data.artifacts.forEach(artifact => {
+              console.log(`Artifact name: ${artifact.name}`);
+            });
+            const issueExists = artifacts.data.artifacts.some(artifact => artifact.name === 'govulncheck-issue');
+            return issueExists;
 
       - name: Search for trivy issue artifact
         id: trivy_issue_exists
@@ -261,8 +264,8 @@ jobs:
               repo: context.repo.repo,
               run_id: context.runId
             });
-            const issuesExists = artifacts.data.artifacts.some(artifact => artifact.name === 'trivy-issue');
-            return issuesExists;
+            const issueExists = artifacts.data.artifacts.some(artifact => artifact.name === 'trivy-issue');
+            return issueExists;
 
       - name: Download govulncheck issue artifacts
         if: steps.govulncheck_issue_exists.outputs.result == 'true'
@@ -271,7 +274,7 @@ jobs:
           name: govulncheck-issues
 
       - name: Download trivy issue artifacts
-        if: steps.trivy_issue_exists.outputs.result == 'true'
+        if: ${{ inputs.execute-trivy-scan }} && steps.trivy_issue_exists.outputs.result == 'true'
         uses: actions/download-artifact@v2
         with:
           name: trivy-issues
