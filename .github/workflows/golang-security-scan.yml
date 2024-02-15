@@ -267,17 +267,17 @@ jobs:
             const issueExists = artifacts.data.artifacts.some(artifact => artifact.name === 'trivy-issue');
             return issueExists;
 
-      - name: Download govulncheck issue artifacts
-        if: steps.govulncheck_issue_exists.outputs.result == 'true'
+      - name: Download govulncheck issue artifact
+        if: steps.govulncheck_issue_exists.outputs.result == true
         uses: actions/download-artifact@v2
         with:
-          name: govulncheck-issues
+          name: govulncheck-issue
 
-      - name: Download trivy issue artifacts
-        if: ${{ inputs.execute-trivy-scan }} && steps.trivy_issue_exists.outputs.result == 'true'
+      - name: Download trivy issue artifact
+        if: ${{ inputs.execute-trivy-scan }} && steps.trivy_issue_exists.outputs.result == true
         uses: actions/download-artifact@v2
         with:
-          name: trivy-issues
+          name: trivy-issue
 
       - name: Prepare Slack message
         id: prepare_message
