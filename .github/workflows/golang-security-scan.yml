@@ -221,7 +221,7 @@ jobs:
 
       - name: Write issue info to file
         run: |
-          echo "${{ matrix.label }} issue: ${{ steps.get_issue_url.outputs.result }}" >> ${{ matrix.label }}-issue.txt
+          echo "*${{ matrix.label }} issue:* ${{ steps.get_issue_url.outputs.result }}" >> ${{ matrix.label }}-issue.txt
 
       - name: Upload issue artifact
         uses: actions/upload-artifact@v2
@@ -255,11 +255,11 @@ jobs:
           MESSAGE="URGENT! The security scan failed for the *${{ github.repository }}* repository. Check the logs at ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           if [ -f govulncheck-issue.txt ]; then
             MESSAGE="$MESSAGE
-            $(cat govulncheck-issue.txt)"
+            - $(cat govulncheck-issue.txt)"
           fi
           if [ -f trivy-issue.txt ]; then
             MESSAGE="$MESSAGE
-            $(cat trivy-issue.txt)"
+            - $(cat trivy-issue.txt)"
           fi
           echo 'SLACK_MESSAGE<<EOF' >> $GITHUB_ENV
           echo "$MESSAGE" >> $GITHUB_ENV
