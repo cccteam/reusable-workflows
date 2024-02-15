@@ -221,7 +221,7 @@ jobs:
 
       - name: Write issue info to file
         run: |
-          echo "*${{ matrix.label }} issue:* ${{ steps.get_issue_url.outputs.result }}" >> ${{ matrix.label }}-issue.txt
+          echo "*_${{ matrix.label }}_ issue:* ${{ steps.get_issue_url.outputs.result }}" >> ${{ matrix.label }}-issue.txt
 
       - name: Upload issue artifact
         uses: actions/upload-artifact@v2
