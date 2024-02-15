@@ -236,13 +236,14 @@ jobs:
     if: always() && (needs.govulncheck.result == 'failure' || needs.trivy.result == 'failure')
     steps:
       - name: Download govulncheck issue artifact
+        if: needs.govulncheck.result == 'failure'
         uses: actions/download-artifact@v2
         with:
           name: govulncheck-issue
         continue-on-error: true # Continue if the artifact is not found
 
       - name: Download trivy issue artifact
-        if: ${{ inputs.execute-trivy-scan }}
+        if: ${{ inputs.execute-trivy-scan }} && needs.trivy.result == 'failure'
         uses: actions/download-artifact@v2
         with:
           name: trivy-issue
@@ -253,10 +254,10 @@ jobs:
         run: |
           MESSAGE="URGENT! The security scan failed for the *${{ github.repository }}* repository. Check the logs at ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           if [ -f govulncheck-issue.txt ]; then
-            MESSAGE="$MESSAGE\n$(cat govulncheck-issue.txt)"
+            MESSAGE="$MESSAGE%0A$(cat govulncheck-issue.txt)"
           fi
           if [ -f trivy-issue.txt ]; then
-            MESSAGE="$MESSAGE\n$(cat trivy-issue.txt)"
+            MESSAGE="$MESSAGE%0A$(cat trivy-issue.txt)"
           fi
           echo "SLACK_MESSAGE=$MESSAGE" >> $GITHUB_ENV
 
