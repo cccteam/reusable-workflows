@@ -246,7 +246,7 @@ jobs:
               repo: context.repo.repo,
               run_id: context.runId
             });
-            const issuesExists = artifacts.data.artifacts.some(artifact => artifact.name === 'govulncheck-issues');
+            const issuesExists = artifacts.data.artifacts.some(artifact => artifact.name === 'govulncheck-issue');
             return issuesExists;
 
       - name: Search for trivy issue artifact
@@ -261,7 +261,7 @@ jobs:
               repo: context.repo.repo,
               run_id: context.runId
             });
-            const issuesExists = artifacts.data.artifacts.some(artifact => artifact.name === 'trivy-issues');
+            const issuesExists = artifacts.data.artifacts.some(artifact => artifact.name === 'trivy-issue');
             return issuesExists;
 
       - name: Download govulncheck issue artifacts
