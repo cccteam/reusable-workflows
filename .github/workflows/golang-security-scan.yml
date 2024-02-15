@@ -61,7 +61,7 @@ jobs:
         shell: bash
 
       - name: Save govulncheck report as artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: govulncheck
           path: govulncheck-report.txt
@@ -107,7 +107,7 @@ jobs:
           severity: "LOW,MEDIUM,HIGH,CRITICAL"
 
       - name: Save Trivy report as artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: trivy
           path: trivy-report.txt
@@ -159,7 +159,7 @@ jobs:
             echo "should_run=false" >> $GITHUB_OUTPUT
           fi
 
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v4
         if: steps.setup.outputs.should_run == 'true'
         with:
           name: ${{ matrix.label }}
@@ -224,7 +224,7 @@ jobs:
           echo "*_${{ matrix.label }}_ issue:* ${{ steps.get_issue_url.outputs.result }}" >> ${{ matrix.label }}-issue.txt
 
       - name: Upload issue artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.label }}-issue
           path: ${{ matrix.label }}-issue.txt
@@ -237,14 +237,14 @@ jobs:
     steps:
       - name: Download govulncheck issue artifact
         if: needs.govulncheck.result == 'failure'
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: govulncheck-issue
         continue-on-error: true # Continue if the artifact is not found
 
       - name: Download trivy issue artifact
         if: ${{ inputs.execute-trivy-scan }} && needs.trivy.result == 'failure'
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: trivy-issue
         continue-on-error: true # Continue if the artifact is not found
