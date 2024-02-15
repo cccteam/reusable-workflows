@@ -261,9 +261,8 @@ jobs:
             MESSAGE="$MESSAGE
             $(cat trivy-issue.txt)"
           fi
-          echo "$MESSAGE"
-          echo 'var<<EOF' >> $GITHUB_ENV
-          echo "SLACK_MESSAGE=$MESSAGE" >> $GITHUB_ENV
+          echo 'SLACK_MESSAGE<<EOF' >> $GITHUB_ENV
+          echo "$MESSAGE" >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
 
       - uses: slackapi/slack-github-action@v1.25.0
