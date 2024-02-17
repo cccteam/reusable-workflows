@@ -181,17 +181,24 @@ jobs:
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           script: |
-            const title = process.env.ISSUE_TITLE;
             const issues = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: "open",
               labels: "vulnerability,${{ matrix.label }}"
             });
-            const existingIssue = issues.data.find(issue => issue.title.includes(title));
-            if (existingIssue) {
-              core.setOutput("issue_number", existingIssue.number);
-              console.log(`Issue already exists: ${existingIssue.number}`);
+
+            if (issues.data.length > 0) {
+              const firstIssue = issues.data[0];
+              core.setOutput("issue_number", firstIssue.number);
+              
+              if (issues.data.length > 1) {
+                // If there are multiple issues, log their numbers
+                const issueNumbers = issues.data.map(issue => issue.number).join(', ');
+                console.log(`Warning: Multiple issues found with specified labels: ${issueNumbers}. Processing the first one: ${firstIssue.number}`);
+              } else {
+                console.log(`Issue found: ${firstIssue.number}`);
+              }
             } else {
               core.setOutput("issue_number", "");
               console.log("No existing issue found");
