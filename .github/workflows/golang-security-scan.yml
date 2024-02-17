@@ -189,17 +189,20 @@ jobs:
               labels: "vulnerability,${{ matrix.label }}"
             });
 
-            if (issues.data.length > 0) {
-              const firstIssue = issues.data[0];
-              core.setOutput("issue_title", firstIssue.title);
-              core.setOutput("issue_number", firstIssue.number);
-              
-              if (issues.data.length > 1) {
+            // Sort the issues by their creation date in descending order
+            const sortedIssues = issues.data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+            if (sortedIssues.length > 0) {
+              const mostRecentIssue = sortedIssues[0];
+              core.setOutput("issue_title", mostRecentIssue.title);
+              core.setOutput("issue_number", mostRecentIssue.number);
+
+              if (sortedIssues.length > 1) {
                 // If there are multiple issues, log their numbers
-                const issueNumbers = issues.data.map(issue => issue.number).join(', ');
-                console.log(`Warning: Multiple issues found with specified labels: ${issueNumbers}. Processing the first one: ${firstIssue.number}`);
+                const issueNumbers = sortedIssues.map(issue => issue.number).join(', ');
+                console.warn(`Multiple issues found: ${issueNumbers}. Processing the most recent one: ${mostRecentIssue.number}`);
               } else {
-                console.log(`Issue found: ${firstIssue.number}`);
+                console.log(`Most recent issue found: ${mostRecentIssue.number}`);
               }
             } else {
               core.setOutput("issue_title", title);
