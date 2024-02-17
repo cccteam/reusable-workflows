@@ -181,6 +181,7 @@ jobs:
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           script: |
+            const title = process.env.ISSUE_TITLE;
             const issues = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -190,6 +191,7 @@ jobs:
 
             if (issues.data.length > 0) {
               const firstIssue = issues.data[0];
+              core.setOutput("issue_title", firstIssue.title);
               core.setOutput("issue_number", firstIssue.number);
               
               if (issues.data.length > 1) {
@@ -200,6 +202,7 @@ jobs:
                 console.log(`Issue found: ${firstIssue.number}`);
               }
             } else {
+              core.setOutput("issue_title", title);
               core.setOutput("issue_number", "");
               console.log("No existing issue found");
             }
@@ -209,7 +212,7 @@ jobs:
         id: create_issue
         uses: peter-evans/create-issue-from-file@v5
         with:
-          title: ${{ env.ISSUE_TITLE }}
+          title: ${{ steps.search_issue.outputs.issue_title }}
           content-filepath: ./formatted-results.md
           labels: vulnerability,${{ matrix.label }}
           issue-number: ${{ steps.search_issue.outputs.issue_number }}
