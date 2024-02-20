@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.0.0](https://github.com/cccteam/github-workflows/compare/v1.1.0...v2.0.0) (2024-02-20)
+
+
+### ⚠ BREAKING CHANGES
+
+* Accept Slack channel ID as secret in golang-security-scan yml ([#16](https://github.com/cccteam/github-workflows/issues/16))
+
+### Features
+
+* Accept Slack channel ID as secret in golang-security-scan yml ([#16](https://github.com/cccteam/github-workflows/issues/16)) ([367894f](https://github.com/cccteam/github-workflows/commit/367894f218454c70ac9b23a5834f69cd64d0a6ce))
+* Include scanner output in Issue body ([#13](https://github.com/cccteam/github-workflows/issues/13)) ([6b4613b](https://github.com/cccteam/github-workflows/commit/6b4613b174190dcd05641d00e6d49b459bc73fe9))
+
 ## [1.1.0](https://github.com/cccteam/github-workflows/compare/v1.0.1...v1.1.0) (2024-02-09)
 
 
