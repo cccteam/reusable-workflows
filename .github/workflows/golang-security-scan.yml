@@ -42,13 +42,44 @@ jobs:
     name: Go Vulnerability Check
     runs-on: ubuntu-latest
     steps:
-      - uses: golang/govulncheck-action@v1
-        with:
-          go-version-input: ${{ inputs.go-version }}
-          go-package: ./...
-          work-dir: ${{ inputs.working-directory }}
+      - uses: actions/checkout@v4
 
-  trivyscan:
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ inputs.go-version }}
+
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+        shell: bash
+
+      - name: Run govulncheck
+        continue-on-error: true
+        run: |
+          set +e # Ensure the script does not exit immediately on error
+          govulncheck -C ${{ inputs.working-directory }} ./... > govulncheck-report.txt
+          GOVULNCHECK_STATUS=$?
+          if [ $GOVULNCHECK_STATUS -ne 0 ]; then
+            touch vulnerabilities-found
+          fi
+        shell: bash
+
+      - name: Save govulncheck report as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: govulncheck
+          path: govulncheck-report.txt
+
+      - name: Report findings
+        run: |
+          if [[ -f vulnerabilities-found ]]; then
+            cat govulncheck-report.txt
+            exit 1;
+          else
+            echo "No vulnerabilities found"
+          fi
+        shell: bash
+
+  trivy:
     name: Trivy Scan
     runs-on: ubuntu-latest
     if: ${{ inputs.execute-trivy-scan }}
@@ -69,67 +100,192 @@ jobs:
           echo "REPO_NAME=$repo_name" >> $GITHUB_ENV
           docker build $BUILD_ARGS -t $repo_name:latest .
 
-      - name: Run Trivy vulnerability scanner
+      - name: Run Trivy vulnerability scanner (capture findings)
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: "${{ env.REPO_NAME }}:latest"
           format: "table"
-          exit-code: "1"
+          output: "trivy-report.txt"
           vuln-type: "os,library"
           severity: "LOW,MEDIUM,HIGH,CRITICAL"
+
+      - name: Save Trivy report as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy
+          path: trivy-report.txt
+
+      - name: Report findings
+        run: |
+          FILE=trivy-report.txt
+          if ! grep -qiE "Total: [1-9]" "$FILE"; then
+            if grep -qiE "Total: 0" "$FILE"; then
+              echo "No vulnerabilities found"
+              exit 0;
+            else
+              echo "failed to properly parse the trivy report!\nFailed to find a Total line\n"
+            fi
+          fi
+          cat trivy-report.txt
+          exit 1;
+        shell: bash
 
   create_issues:
     name: Create issues for failed jobs
     runs-on: ubuntu-latest
-    needs: [govulncheck, trivyscan]
-    if: always() && (needs.govulncheck.result == 'failure' || needs.trivyscan.result == 'failure')
+    strategy:
+      matrix:
+        label: [govulncheck, trivy]
+    needs: [govulncheck, trivy]
+    if: always()
     steps:
-      - uses: actions/github-script@v7
+      - name: Setup environment for this matrix job
+        id: setup
+        shell: bash
+        run: |
+          if [[ "${{ needs.govulncheck.result }}" == "failure" && "${{ matrix.label }}" == "govulncheck" ]] || [[ "${{ needs.trivy.result }}" == "failure" && "${{ matrix.label }}" == "trivy" ]]; then
+            # Enable the steps to run
+            echo "should_run=true" >> $GITHUB_OUTPUT
+
+            # Set the issue title and file path
+            if [[ "${{ matrix.label }}" == "govulncheck" ]]; then
+              ISSUE_TITLE="Go Vulnerability Report"
+              FILE_PATH=govulncheck-report.txt
+            elif [[ "${{ matrix.label }}" == "trivy" ]]; then
+              ISSUE_TITLE="Trivy Vulnerability Report"
+              FILE_PATH=trivy-report.txt
+            fi
+
+            echo "ISSUE_TITLE=$ISSUE_TITLE" >> $GITHUB_ENV
+            echo "FILE_PATH=$FILE_PATH" >> $GITHUB_ENV
+          else
+            echo "should_run=false" >> $GITHUB_OUTPUT
+          fi
+
+      - uses: actions/download-artifact@v4
+        if: steps.setup.outputs.should_run == 'true'
         with:
+          name: ${{ matrix.label }}
+
+      - name: Format Issue Body content
+        if: steps.setup.outputs.should_run == 'true'
+        run: |
+          echo -e "## $ISSUE_TITLE\n\nThe following vulnerabilities were identified in the project:\n\n\`\`\`" > formatted-results.md
+          cat $FILE_PATH >> formatted-results.md
+          echo -e "\`\`\`" >> formatted-results.md
+
+      - name: Search for existing issue
+        if: steps.setup.outputs.should_run == 'true'
+        id: search_issue
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
           script: |
-            async function createIssue(jobName) {
-              const title = `${jobName} job failed in Security Scan workflow`;
-              const label = jobName;
+            const title = process.env.ISSUE_TITLE;
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              labels: "vulnerability,${{ matrix.label }}"
+            });
 
-              const { data: issues } = await github.rest.issues.listForRepo({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                state: "open",
-                labels: `automated issue,${label}`
-              });
-              
-              const createNewIssue = !issues.find(issue => issue.title === title);
-              if (createNewIssue) {
-                const issue = {
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  title: title,
-                  body: `The ${jobName} job failed in the Security Scan workflow. Please investigate.`,
-                  labels: ["automated issue", label]
-                };
-                github.rest.issues.create(issue).then(createdIssue => {
-                  console.log(`Issue ${createdIssue.data.number} was created for failed job: ${jobName}.`);
-                });
+            // Sort the issues by their creation date in descending order
+            const sortedIssues = issues.data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+            if (sortedIssues.length > 0) {
+              const mostRecentIssue = sortedIssues[0];
+              core.setOutput("issue_title", mostRecentIssue.title);
+              core.setOutput("issue_number", mostRecentIssue.number);
+
+              if (sortedIssues.length > 1) {
+                // If there are multiple issues, log their numbers
+                const issueNumbers = sortedIssues.map(issue => issue.number).join(', ');
+                console.warn(`Multiple issues found: ${issueNumbers}. Processing the most recent one: ${mostRecentIssue.number}`);
+              } else {
+                console.log(`Most recent issue found: ${mostRecentIssue.number}`);
               }
+            } else {
+              core.setOutput("issue_title", title);
+              core.setOutput("issue_number", "");
+              console.log("No existing issue found");
             }
 
-            if ('${{ needs.govulncheck.result }}' == 'failure') {
-              createIssue("govulncheck");
-            }
+      - name: Update or Create Issue
+        if: steps.setup.outputs.should_run == 'true'
+        id: create_issue
+        uses: peter-evans/create-issue-from-file@v5
+        with:
+          title: ${{ steps.search_issue.outputs.issue_title }}
+          content-filepath: ./formatted-results.md
+          labels: vulnerability,${{ matrix.label }}
+          issue-number: ${{ steps.search_issue.outputs.issue_number }}
 
-            if ('${{ needs.trivyscan.result }}' == 'failure') {
-              createIssue("trivyscan");
-            }
+      - name: Get issue URL
+        if: steps.setup.outputs.should_run == 'true'
+        id: get_issue_url
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            const issueNumber = ${{ steps.create_issue.outputs.issue-number }};
+            const issue = await github.rest.issues.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber
+            });
+            return issue.data.html_url;
+
+      - name: Write issue info to file
+        if: steps.setup.outputs.should_run == 'true'
+        run: |
+          echo "*_${{ matrix.label }}_ issue:* ${{ steps.get_issue_url.outputs.result }}" >> ${{ matrix.label }}-issue.txt
+
+      - name: Upload issue artifact
+        if: steps.setup.outputs.should_run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.label }}-issue
+          path: ${{ matrix.label }}-issue.txt
 
   slack_notification:
     name: Send Slack notification for failed jobs
     runs-on: ubuntu-latest
-    needs: [govulncheck, trivyscan]
-    if: always() && (needs.govulncheck.result == 'failure' || needs.trivyscan.result == 'failure')
+    needs: [govulncheck, trivy, create_issues]
+    if: always() && (needs.govulncheck.result == 'failure' || needs.trivy.result == 'failure')
     steps:
+      - name: Download govulncheck issue artifact
+        if: needs.govulncheck.result == 'failure'
+        uses: actions/download-artifact@v4
+        with:
+          name: govulncheck-issue
+        continue-on-error: true # Continue if the artifact is not found
+
+      - name: Download trivy issue artifact
+        if: ${{ inputs.execute-trivy-scan }} && needs.trivy.result == 'failure'
+        uses: actions/download-artifact@v4
+        with:
+          name: trivy-issue
+        continue-on-error: true # Continue if the artifact is not found
+
+      - name: Prepare Slack message
+        id: prepare_message
+        run: |
+          MESSAGE="URGENT! The security scan failed for the *${{ github.repository }}* repository. Check the logs at ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          if [ -f govulncheck-issue.txt ]; then
+            MESSAGE="$MESSAGE
+            - $(cat govulncheck-issue.txt)"
+          fi
+          if [ -f trivy-issue.txt ]; then
+            MESSAGE="$MESSAGE
+            - $(cat trivy-issue.txt)"
+          fi
+          echo 'SLACK_MESSAGE<<EOF' >> $GITHUB_ENV
+          echo "$MESSAGE" >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+
       - uses: slackapi/slack-github-action@v1.25.0
         with:
           channel-id: ${{ inputs.slack-channel-id || secrets.SLACK_CHANNEL_ID }}
-          slack-message: "URGENT! The security scan failed for the *${{ github.repository }}* repository. Check the logs at ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          slack-message: ${{ env.SLACK_MESSAGE }}
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
