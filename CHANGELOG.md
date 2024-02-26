@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1](https://github.com/cccteam/github-workflows/compare/v2.0.0...v2.0.1) (2024-02-26)
+
+
+### Code Upgrade
+
+* Upgrade linter to v1.56 ([#18](https://github.com/cccteam/github-workflows/issues/18)) ([7629ae1](https://github.com/cccteam/github-workflows/commit/7629ae16b7208a50a5c2b95bfd9454c4d42cbf76))
+
 ## [2.0.0](https://github.com/cccteam/github-workflows/compare/v1.1.0...v2.0.0) (2024-02-20)
 
 
