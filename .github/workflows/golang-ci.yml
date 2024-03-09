@@ -50,6 +50,7 @@ jobs:
 
       - name: Run go generate
         run: go generate ./...
+        working-directory: ${{ inputs.working-directory }}
 
       - name: Check for go generate changes
         run: |
