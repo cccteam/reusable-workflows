@@ -50,6 +50,7 @@ jobs:
 
       - name: Run go generate
         run: go generate ./...
+        working-directory: ${{ inputs.working-directory }}
 
       - name: Check for go generate changes
         run: |
@@ -111,7 +112,7 @@ jobs:
           cache-dependency-path: ${{ inputs.working-directory }}/go.sum
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v4
         with:
           # Required: the version of golangci-lint is required and must be specified without patch version: we always use the latest patch version.
           version: ${{ inputs.golangci-lint-version }}
