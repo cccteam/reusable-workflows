@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.2](https://github.com/cccteam/github-workflows/compare/v2.0.1...v2.0.2) (2024-03-12)
+
+
+### Bug Fixes
+
+* Run go generate check from the proper directory ([#21](https://github.com/cccteam/github-workflows/issues/21)) ([71495dd](https://github.com/cccteam/github-workflows/commit/71495dd41dbb18721329c595fd6f53ea074c67fb))
+
 ## [2.0.1](https://github.com/cccteam/github-workflows/compare/v2.0.0...v2.0.1) (2024-02-26)
 
 
