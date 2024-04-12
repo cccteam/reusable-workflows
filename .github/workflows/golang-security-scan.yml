@@ -38,11 +38,30 @@ on:
         description: Channel ID for sending Slack notifications for a failed scan. This can be overridden by the 'slack-channel-id' input.
 
 jobs:
+  get-latest-release:
+    runs-on: ubuntu-latest
+    outputs:
+      latest_release: ${{ steps.get_latest_release.outputs.result }}
+    steps:
+      - name: Get latest release
+        id: get_latest_release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const latestRelease = await github.rest.repos.getLatestRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+            return latestRelease.data.tag_name;
+
   govulncheck:
+    needs: get-latest-release
     name: Go Vulnerability Check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.get-latest-release.outputs.latest_release }}
 
       - uses: actions/setup-go@v5
         with:
@@ -80,12 +99,15 @@ jobs:
         shell: bash
 
   trivy:
+    needs: get-latest-release
     name: Trivy Scan
     runs-on: ubuntu-latest
     if: ${{ inputs.execute-trivy-scan }}
     steps:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.get-latest-release.outputs.latest_release }}
 
       - name: Prepare Docker build args
         id: prepare-build-args
