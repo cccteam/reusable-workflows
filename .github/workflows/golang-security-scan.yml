@@ -29,6 +29,10 @@ on:
         type: string
         default: "[]" # empty array
         description: Json-formatted array of strings to pass to the docker build command as build args. e.g. '["arg1", "arg2"]'
+      scan-latest-release:
+        description: "Scan the latest release of the repository in addition to the default branch"
+        default: true
+        type: boolean
     secrets:
       SLACK_BOT_TOKEN:
         required: true
@@ -38,12 +42,14 @@ on:
         description: Channel ID for sending Slack notifications for a failed scan. This can be overridden by the 'slack-channel-id' input.
 
 jobs:
-  get-latest-release:
+  env-setup:
+    name: Environment Setup
     runs-on: ubuntu-latest
     outputs:
-      latest_release: ${{ steps.get_latest_release.outputs.result }}
+      checkout-refs: "[${{ steps.set_checkout_refs.outputs.checkout_refs }}]"
     steps:
       - name: Get latest release
+        if: ${{ inputs.scan-latest-release }}
         id: get_latest_release
         uses: actions/github-script@v7
         with:
@@ -52,16 +58,35 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
             });
+            console.log(`Latest release: ${latestRelease.data.tag_name}`);
             return latestRelease.data.tag_name;
+      - name: Set checkout refs
+        id: set_checkout_refs
+        run: |
+          if [[ "${{ inputs.scan-latest-release }}" == "true" ]]; then
+            echo "checkout_refs='','${{ steps.get_latest_release.outputs.result }}'" >> $GITHUB_OUTPUT
+          else
+          echo "checkout_refs=''" >> $GITHUB_OUTPUT
+          fi
 
   govulncheck:
-    needs: get-latest-release
+    needs: env-setup
     name: Go Vulnerability Check
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        checkout-ref: ${{ fromJson(needs.env-setup.outputs.checkout-refs) }}
     steps:
+      - name: Set report variables
+        run: |
+          echo "REPORT_NAME=govulncheck-${{ matrix.checkout-ref == '' && '1' || '2' }}" >> $GITHUB_ENV
+          echo "REPORT_PATH=govulncheck-report-${{ matrix.checkout-ref == '' && '1' || '2' }}.txt" >> $GITHUB_ENV
+
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.get-latest-release.outputs.latest_release }}
+          ref: ${{ matrix.checkout-ref }}
+          fetch-tags: true
 
       - uses: actions/setup-go@v5
         with:
@@ -75,7 +100,7 @@ jobs:
         continue-on-error: true
         run: |
           set +e # Ensure the script does not exit immediately on error
-          govulncheck -C ${{ inputs.working-directory }} ./... > govulncheck-report.txt
+          govulncheck -C ${{ inputs.working-directory }} ./... > ${{ env.REPORT_PATH }}
           GOVULNCHECK_STATUS=$?
           if [ $GOVULNCHECK_STATUS -ne 0 ]; then
             touch vulnerabilities-found
@@ -85,13 +110,13 @@ jobs:
       - name: Save govulncheck report as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: govulncheck
-          path: govulncheck-report.txt
+          name: ${{ env.REPORT_NAME }}
+          path: ${{ env.REPORT_PATH }}
 
       - name: Report findings
         run: |
           if [[ -f vulnerabilities-found ]]; then
-            cat govulncheck-report.txt
+            cat ${{ env.REPORT_PATH }}
             exit 1;
           else
             echo "No vulnerabilities found"
@@ -99,15 +124,24 @@ jobs:
         shell: bash
 
   trivy:
-    needs: get-latest-release
+    needs: env-setup
     name: Trivy Scan
     runs-on: ubuntu-latest
     if: ${{ inputs.execute-trivy-scan }}
+    strategy:
+      fail-fast: false
+      matrix:
+        checkout-ref: ${{ fromJson(needs.env-setup.outputs.checkout-refs) }}
     steps:
-      - name: Check out code into the Go module directory
-        uses: actions/checkout@v4
+      - name: Set report variables
+        run: |
+          echo "REPORT_NAME=trivy-${{ matrix.checkout-ref == '' && '1' || '2' }}" >> $GITHUB_ENV
+          echo "REPORT_PATH=trivy-report-${{ matrix.checkout-ref == '' && '1' || '2' }}.txt" >> $GITHUB_ENV
+
+      - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.get-latest-release.outputs.latest_release }}
+          ref: ${{ matrix.checkout-ref }}
+          fetch-tags: true
 
       - name: Prepare Docker build args
         id: prepare-build-args
@@ -127,19 +161,19 @@ jobs:
         with:
           image-ref: "${{ env.REPO_NAME }}:latest"
           format: "table"
-          output: "trivy-report.txt"
+          output: ${{ env.REPORT_PATH }}
           vuln-type: "os,library"
           severity: "LOW,MEDIUM,HIGH,CRITICAL"
 
       - name: Save Trivy report as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: trivy
-          path: trivy-report.txt
+          name: ${{ env.REPORT_NAME }}
+          path: ${{ env.REPORT_PATH }}
 
       - name: Report findings
         run: |
-          FILE=trivy-report.txt
+          FILE=${{ env.REPORT_PATH }}
           if ! grep -qiE "Total: [1-9]" "$FILE"; then
             if grep -qiE "Total: 0" "$FILE"; then
               echo "No vulnerabilities found"
@@ -148,7 +182,7 @@ jobs:
               echo "failed to properly parse the trivy report!\nFailed to find a Total line\n"
             fi
           fi
-          cat trivy-report.txt
+          cat ${{ env.REPORT_PATH }}
           exit 1;
         shell: bash
 
@@ -169,17 +203,14 @@ jobs:
             # Enable the steps to run
             echo "should_run=true" >> $GITHUB_OUTPUT
 
-            # Set the issue title and file path
+            # Set the issue title
             if [[ "${{ matrix.label }}" == "govulncheck" ]]; then
               ISSUE_TITLE="Go Vulnerability Report"
-              FILE_PATH=govulncheck-report.txt
             elif [[ "${{ matrix.label }}" == "trivy" ]]; then
               ISSUE_TITLE="Trivy Vulnerability Report"
-              FILE_PATH=trivy-report.txt
             fi
 
             echo "ISSUE_TITLE=$ISSUE_TITLE" >> $GITHUB_ENV
-            echo "FILE_PATH=$FILE_PATH" >> $GITHUB_ENV
           else
             echo "should_run=false" >> $GITHUB_OUTPUT
           fi
@@ -187,13 +218,17 @@ jobs:
       - uses: actions/download-artifact@v4
         if: steps.setup.outputs.should_run == 'true'
         with:
-          name: ${{ matrix.label }}
+          name: ${{ matrix.label }}-1
 
       - name: Format Issue Body content
         if: steps.setup.outputs.should_run == 'true'
         run: |
-          echo -e "## $ISSUE_TITLE\n\nThe following vulnerabilities were identified in the project:\n\n\`\`\`" > formatted-results.md
-          cat $FILE_PATH >> formatted-results.md
+          echo -e "## $ISSUE_TITLE\n\nThe following vulnerabilities were identified in the ${{ github.event.repository.default_branch }} branch:\n\n\`\`\`" > formatted-results.md
+          cat ${{ matrix.label }}-report-1.txt >> formatted-results.md
+          if [[ -f ${{ matrix.label }}-report-2.txt ]]; then
+            echo -e "\`\`\`\n\nThe following vulnerabilities were identified in the latest release:\n\n\`\`\`" >> formatted-results.md
+            cat ${{ matrix.label }}-report-2.txt >> formatted-results.md
+          fi
           echo -e "\`\`\`" >> formatted-results.md
 
       - name: Search for existing issue
