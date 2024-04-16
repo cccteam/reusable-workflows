@@ -1,6 +1,7 @@
 # This workflow performs security scanning for Go projects.
 #  - govulncheck-action is used to check for vulnerabilities in the Go modules
 #  - trivy-action is used to check for vulnerabilities in the application's final docker image (optional)
+#  - Dependabot security alerts are checked using the GitHub API
 # GitHub issues are created for failed jobs.
 # A Slack message is sent (per user provided details) if either security check fails.
 #
@@ -20,6 +21,11 @@ on:
         required: false
         type: boolean
         default: true
+      execute-dependabot-check:
+        required: false
+        type: boolean
+        default: true
+        description: "Execute the Dependabot security alerts check"
       working-directory:
         required: false
         type: string
@@ -33,6 +39,15 @@ on:
         description: "Scan the latest release of the repository in addition to the default branch"
         default: true
         type: boolean
+      ignored-dependabot-alerts-path:
+        required: false
+        type: string
+        default: ""
+        description: >
+          Path to a json file that contains a JSON array of Dependabot alerts to ignore. 
+          If not provided, no alerts will be ignored.
+
+          Note: These alerts should be copied directly from the Dependabot issue so that the formatting is as expected.
     secrets:
       SLACK_BOT_TOKEN:
         required: true
@@ -40,6 +55,9 @@ on:
       SLACK_CHANNEL_ID:
         required: true
         description: Channel ID for sending Slack notifications for a failed scan. This can be overridden by the 'slack-channel-id' input.
+      DEPENDABOT_ALERTS_TOKEN:
+        required: true
+        description: Token for checking Dependabot security alerts
 
 jobs:
   env-setup:
@@ -186,20 +204,80 @@ jobs:
           exit 1;
         shell: bash
 
+  dependabot:
+    runs-on: ubuntu-latest
+    if: ${{ inputs.execute-dependabot-check }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare ignored alerts file
+        run: |
+          IGNORED_ALERTS_PATH="${{ inputs.ignored-dependabot-alerts-path }}"
+          if [[ -z "$IGNORED_ALERTS_PATH" || ! -f "$IGNORED_ALERTS_PATH" ]]; then
+            echo "[]" > ignored-alerts.json
+          else
+            if ! jq -c '.' "$IGNORED_ALERTS_PATH" > ignored-alerts.json; then
+              echo "[]" > ignored-alerts.json
+            fi
+          fi
+
+      - name: Check for Dependabot security alerts
+        run: |
+          curl -L \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.DEPENDABOT_ALERTS_TOKEN }}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            ${{ github.api_url }}/repos/${{ github.repository }}/dependabot/alerts?state=open \
+            -o alerts.json
+
+          if [[ $(jq '. | length' alerts.json) -gt 0 ]]; then
+            jq -c '.[] | {url: .url, dependency: .dependency, summary: .security_advisory.summary, severity: .security_advisory.severity, updated_at: .updated_at}' alerts.json | while read alert; do
+              echo "Alert: $alert"
+
+              is_alert_ignored=$(jq --argjson alert "$alert" 'any(. == $alert)' ignored-alerts.json)
+              echo -e "alert ignored: $is_alert_ignored\n"
+
+              if [[ "$is_alert_ignored" == "false" ]]; then
+                echo "$alert" >> not_ignored_alerts.txt
+              fi
+            done
+            if [[ -f not_ignored_alerts.txt ]]; then
+              jq -s '.' not_ignored_alerts.txt > dependabot-report-1.txt
+            else
+              echo '[]' > dependabot-report-1.txt
+            fi
+          fi
+
+      - name: Upload Dependabot alerts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependabot-1
+          path: dependabot-report-1.txt
+
+      - name: Fail job for Dependabot alerts
+        run: |
+          if [[ -f dependabot-report-1.txt && $(jq '. | length' dependabot-report-1.txt) -gt 0 ]]; then
+            exit 1
+          fi
+
   create_issues:
     name: Create issues for failed jobs
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        label: [govulncheck, trivy]
-    needs: [govulncheck, trivy]
+        label: [govulncheck, trivy, dependabot]
+    needs: [govulncheck, trivy, dependabot]
     if: always()
     steps:
       - name: Setup environment for this matrix job
         id: setup
         shell: bash
         run: |
-          if [[ "${{ needs.govulncheck.result }}" == "failure" && "${{ matrix.label }}" == "govulncheck" ]] || [[ "${{ needs.trivy.result }}" == "failure" && "${{ matrix.label }}" == "trivy" ]]; then
+          if [[ "${{ needs.govulncheck.result }}" == "failure" && "${{ matrix.label }}" == "govulncheck" ]] || \
+           [[ "${{ needs.trivy.result }}" == "failure" && "${{ matrix.label }}" == "trivy" ]] || \
+           [[ "${{ needs.dependabot.result }}" == "failure" && "${{ matrix.label }}" == "dependabot" ]]; then
+
             # Enable the steps to run
             echo "should_run=true" >> $GITHUB_OUTPUT
 
@@ -208,6 +286,8 @@ jobs:
               ISSUE_TITLE="Go Vulnerability Report"
             elif [[ "${{ matrix.label }}" == "trivy" ]]; then
               ISSUE_TITLE="Trivy Vulnerability Report"
+            elif [[ "${{ matrix.label }}" == "dependabot" ]]; then
+              ISSUE_TITLE="Dependabot Security Alerts"
             fi
 
             echo "ISSUE_TITLE=$ISSUE_TITLE" >> $GITHUB_ENV
@@ -219,6 +299,11 @@ jobs:
         if: steps.setup.outputs.should_run == 'true'
         with:
           name: ${{ matrix.label }}-1
+
+      - uses: actions/download-artifact@v4
+        if: steps.setup.outputs.should_run == 'true' && inputs.scan-latest-release && !matrix.label == 'dependabot'
+        with:
+          name: ${{ matrix.label }}-2
 
       - name: Format Issue Body content
         if: steps.setup.outputs.should_run == 'true'
@@ -307,8 +392,8 @@ jobs:
   slack_notification:
     name: Send Slack notification for failed jobs
     runs-on: ubuntu-latest
-    needs: [govulncheck, trivy, create_issues]
-    if: always() && (needs.govulncheck.result == 'failure' || needs.trivy.result == 'failure')
+    needs: [govulncheck, trivy, create_issues, dependabot]
+    if: always() && (needs.govulncheck.result == 'failure' || needs.trivy.result == 'failure' || needs.dependabot.result == 'failure')
     steps:
       - name: Download govulncheck issue artifact
         if: needs.govulncheck.result == 'failure'
@@ -324,6 +409,13 @@ jobs:
           name: trivy-issue
         continue-on-error: true # Continue if the artifact is not found
 
+      - name: Download dependabot issue artifact
+        if: ${{ inputs.execute-dependabot-check }} && needs.dependabot.result == 'failure'
+        uses: actions/download-artifact@v4
+        with:
+          name: dependabot-issue
+        continue-on-error: true # Continue if the artifact is not found
+
       - name: Prepare Slack message
         id: prepare_message
         run: |
@@ -335,6 +427,10 @@ jobs:
           if [ -f trivy-issue.txt ]; then
             MESSAGE="$MESSAGE
             - $(cat trivy-issue.txt)"
+          fi
+          if [ -f dependabot-issue.txt ]; then
+            MESSAGE="$MESSAGE
+            - $(cat dependabot-issue.txt)"
           fi
           echo 'SLACK_MESSAGE<<EOF' >> $GITHUB_ENV
           echo "$MESSAGE" >> $GITHUB_ENV
