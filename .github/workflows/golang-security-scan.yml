@@ -36,6 +36,7 @@ on:
         default: "[]" # empty array
         description: Json-formatted array of strings to pass to the docker build command as build args. e.g. '["arg1", "arg2"]'
       scan-latest-release:
+        required: false
         description: "Scan the latest release of the repository in addition to the default branch"
         default: true
         type: boolean
