@@ -84,7 +84,7 @@ jobs:
           if [[ "${{ inputs.scan-latest-release }}" == "true" ]]; then
             echo "checkout_refs='','${{ steps.get_latest_release.outputs.result }}'" >> $GITHUB_OUTPUT
           else
-          echo "checkout_refs=''" >> $GITHUB_OUTPUT
+            echo "checkout_refs=''" >> $GITHUB_OUTPUT
           fi
 
   govulncheck:
