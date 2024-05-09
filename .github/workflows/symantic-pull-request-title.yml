@@ -1,0 +1,33 @@
+name: "Enforce symantic pull request title"
+
+on:
+  workflow_call:
+
+permissions:
+  pull-requests: read
+
+jobs:
+  main:
+    name: Validate PR title
+    runs-on: ubuntu-latest
+    steps:
+      - uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            feature
+            fix
+            perf
+            revert
+            docs
+            deps
+            style
+            chore
+            refactor
+            cleanup
+            test
+            build
+            ci
+            upgrade
