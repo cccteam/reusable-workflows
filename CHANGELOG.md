@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.0.0](https://github.com/cccteam/github-workflows/compare/v2.0.2...v3.0.0) (2024-05-10)
+
+
+### ⚠ BREAKING CHANGES
+
+* New required secret DEPENDABOT_ALERTS_TOKEN causes a breaking change ([#24](https://github.com/cccteam/github-workflows/issues/24))
+
+### Features
+
+* Add semantic pull request title workflow ([#26](https://github.com/cccteam/github-workflows/issues/26)) ([ef4ea81](https://github.com/cccteam/github-workflows/commit/ef4ea81b2b03c300b58b9170018dca31bdfb2c7f))
+* New required secret DEPENDABOT_ALERTS_TOKEN causes a breaking change ([#24](https://github.com/cccteam/github-workflows/issues/24)) ([cafa49b](https://github.com/cccteam/github-workflows/commit/cafa49bb95a4adad6a5183f102e0c12a0f4a846e))
+* Optionally scan the latest release & include Dependabot security alerts ([#24](https://github.com/cccteam/github-workflows/issues/24)) ([cafa49b](https://github.com/cccteam/github-workflows/commit/cafa49bb95a4adad6a5183f102e0c12a0f4a846e))
+
 ## [2.0.2](https://github.com/cccteam/github-workflows/compare/v2.0.1...v2.0.2) (2024-03-12)
 
 
