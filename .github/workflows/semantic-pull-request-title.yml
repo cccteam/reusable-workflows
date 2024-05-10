@@ -1,4 +1,4 @@
-name: "Enforce symantic pull request title"
+name: "Enforce semantic pull request title"
 
 on:
   workflow_call:
