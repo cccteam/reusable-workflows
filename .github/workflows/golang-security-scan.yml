@@ -10,9 +10,6 @@ name: Golang Security Scan Template
 on:
   workflow_call:
     inputs:
-      go-version:
-        required: true
-        type: string
       slack-channel-id:
         required: false
         type: string
@@ -107,9 +104,12 @@ jobs:
           ref: ${{ matrix.checkout-ref }}
           fetch-tags: true
 
+      - name: Determine Go version
+        run: echo "GO_VERSION=$(go mod edit -json | jq -r .Go)" >> $GITHUB_ENV
+
       - uses: actions/setup-go@v5
         with:
-          go-version: ${{ inputs.go-version }}
+          go-version: ${{ env.GO_VERSION }}
 
       - name: Install govulncheck
         run: go install golang.org/x/vuln/cmd/govulncheck@latest
