@@ -1,12 +1,5 @@
 # Changelog
 
-## [3.0.1](https://github.com/cccteam/github-workflows/compare/v3.0.0...v3.0.1) (2024-06-11)
-
-
-### Bug Fixes
-
-* Retrieve Go version from go mod file for govulncheck ([#30](https://github.com/cccteam/github-workflows/issues/30)) ([b147c8c](https://github.com/cccteam/github-workflows/commit/b147c8cc4b609220bdf026113825de3353a6493d))
-
 ## [3.0.0](https://github.com/cccteam/github-workflows/compare/v2.0.2...v3.0.0) (2024-05-10)
 
 
