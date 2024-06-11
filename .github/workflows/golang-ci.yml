@@ -112,7 +112,7 @@ jobs:
           cache-dependency-path: ${{ inputs.working-directory }}/go.sum
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v4
+        uses: golangci/golangci-lint-action@v6
         with:
           # Required: the version of golangci-lint is required and must be specified without patch version: we always use the latest patch version.
           version: ${{ inputs.golangci-lint-version }}
@@ -122,7 +122,4 @@ jobs:
           # Optional: show only new issues if it's a pull request. The default value is `false`.
           only-new-issues: true
 
-          # caching handled by actions/setup-go (above)
-          skip-pkg-cache: true
-          skip-build-cache: true
           working-directory: ${{ inputs.working-directory }}
