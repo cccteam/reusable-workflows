@@ -302,7 +302,7 @@ jobs:
           name: ${{ matrix.label }}-1
 
       - uses: actions/download-artifact@v4
-        if: steps.setup.outputs.should_run == 'true' && inputs.scan-latest-release == 'true' && !matrix.label == 'dependabot'
+        if: steps.setup.outputs.should_run == 'true' && ${{ inputs.scan-latest-release }} && !matrix.label == 'dependabot'
         with:
           name: ${{ matrix.label }}-2
 
