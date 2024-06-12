@@ -123,6 +123,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: ${{ inputs.working-directory }}/go.mod
+          cache: false
 
       - name: Run govulncheck
         continue-on-error: true
