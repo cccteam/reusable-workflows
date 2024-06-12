@@ -253,6 +253,8 @@ jobs:
             else
               echo '[]' > dependabot-report-1.txt
             fi
+          else
+            echo '[]' > dependabot-report-1.txt
           fi
 
       - name: Upload Dependabot alerts
