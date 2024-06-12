@@ -1,5 +1,17 @@
 # Changelog
 
+## [4.0.0](https://github.com/cccteam/github-workflows/compare/v3.0.0...v4.0.0) (2024-06-12)
+
+
+### ⚠ BREAKING CHANGES
+
+* Removal of 'go-version' as an input to security-scan.yml causes a breaking change
+
+### Bug Fixes
+
+* Removal of 'go-version' as an input to security-scan.yml causes a breaking change ([b147c8c](https://github.com/cccteam/github-workflows/commit/b147c8cc4b609220bdf026113825de3353a6493d))
+* Retrieve Go version from go mod file for govulncheck ([b147c8c](https://github.com/cccteam/github-workflows/commit/b147c8cc4b609220bdf026113825de3353a6493d))
+
 ## [3.0.0](https://github.com/cccteam/github-workflows/compare/v2.0.2...v3.0.0) (2024-05-10)
 
 
