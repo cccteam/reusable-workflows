@@ -113,6 +113,10 @@ jobs:
         with:
           go-version-file: ${{ inputs.working-directory }}/go.mod
 
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+        shell: bash
+
       - name: Run govulncheck
         continue-on-error: true
         run: |
