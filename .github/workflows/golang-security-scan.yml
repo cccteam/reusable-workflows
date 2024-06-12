@@ -266,6 +266,7 @@ jobs:
     name: Create issues for failed jobs
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         label: [govulncheck, trivy, dependabot]
     needs: [govulncheck, trivy, dependabot]
