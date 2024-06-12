@@ -109,16 +109,9 @@ jobs:
           ref: ${{ matrix.checkout-ref }}
           fetch-tags: true
 
-      - name: Determine Go version
-        run: echo "GO_VERSION=$(go mod edit -json | jq -r .Go)" >> $GITHUB_ENV
-
       - uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
-
-      - name: Install govulncheck
-        run: go install golang.org/x/vuln/cmd/govulncheck@${{ inputs.govulncheck-version }}
-        shell: bash
+          go-version-file: ${{ inputs.working-directory }}/go.mod
 
       - name: Run govulncheck
         continue-on-error: true
