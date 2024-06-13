@@ -1,5 +1,23 @@
 # Changelog
 
+## [4.1.0](https://github.com/cccteam/github-workflows/compare/v4.0.0...v4.1.0) (2024-06-13)
+
+
+### Features
+
+* Optionally specify govulncheck version to use ([cc76a3d](https://github.com/cccteam/github-workflows/commit/cc76a3dec819fda64393f0a520c94676063070c9))
+
+
+### Bug Fixes
+
+* Conditions for security scan results reporting ([#36](https://github.com/cccteam/github-workflows/issues/36)) ([cc76a3d](https://github.com/cccteam/github-workflows/commit/cc76a3dec819fda64393f0a520c94676063070c9))
+* Use latest stable Go version to install govulncheck ([cc76a3d](https://github.com/cccteam/github-workflows/commit/cc76a3dec819fda64393f0a520c94676063070c9))
+
+
+### Code Refactoring
+
+* Simplify use of Go version from go mod file ([cc76a3d](https://github.com/cccteam/github-workflows/commit/cc76a3dec819fda64393f0a520c94676063070c9))
+
 ## [4.0.0](https://github.com/cccteam/github-workflows/compare/v3.0.0...v4.0.0) (2024-06-12)
 
 
