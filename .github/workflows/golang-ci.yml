@@ -30,6 +30,11 @@ on:
         required: false
         type: string
         default: "5m"
+      golangci-lint-only-new-issues:
+        required: false
+        type: boolean
+        default: false
+        description: "Show only new issues if it's a pull request"
 
 jobs:
   go-generate-diff:
@@ -118,8 +123,5 @@ jobs:
           version: ${{ inputs.golangci-lint-version }}
 
           args: --timeout ${{ inputs.golangci-lint-timeout }} --verbose ${{ matrix.build-tag != '' && format('--build-tags {0}', matrix.build-tag) || '' }}
-
-          # Optional: show only new issues if it's a pull request. The default value is `false`.
-          only-new-issues: true
-
+          only-new-issues: ${{ inputs.golangci-lint-only-new-issues }}
           working-directory: ${{ inputs.working-directory }}
