@@ -1,5 +1,16 @@
 # Changelog
 
+## [5.0.0](https://github.com/cccteam/github-workflows/compare/v4.1.0...v5.0.0) (2024-07-26)
+
+
+### ⚠ BREAKING CHANGES
+
+* fetch go version from go.mod instead of external go-version input
+
+### Features
+
+* fetch go version from go.mod instead of external go-version input ([4160e61](https://github.com/cccteam/github-workflows/commit/4160e61261edfa2bc7ee4f0e699c5e25cb78503c))
+
 ## [4.1.0](https://github.com/cccteam/github-workflows/compare/v4.0.0...v4.1.0) (2024-06-13)
 
 
