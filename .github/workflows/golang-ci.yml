@@ -16,9 +16,6 @@ on:
         required: false
         type: string
         default: "."
-      go-version:
-        required: true
-        type: string
       build-tags:
         required: true
         type: string # containing Json-formatted array of strings, e.g. '["", "tag1", "tag2", "tag1,tag3"]'
@@ -39,10 +36,10 @@ jobs:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v4
 
-      - name: Set up Go ${{ inputs.go-version }}
+      - name: Set up Go for app
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ inputs.go-version }}
+          go-version-file: ${{ inputs.working-directory }}/go.mod
           cache-dependency-path: ${{ inputs.working-directory }}/go.sum
 
       - name: Install mockgen
@@ -70,10 +67,10 @@ jobs:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v4
 
-      - name: Set up Go ${{ inputs.go-version }}
+      - name: Set up Go for app
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ inputs.go-version }}
+          go-version-file: ${{ inputs.working-directory }}/go.mod
           cache-dependency-path: ${{ inputs.working-directory }}/go.sum
 
       - name: Run tests with race detection
@@ -91,7 +88,7 @@ jobs:
       # NOTE: Repo checkout and go setup are handled within 'govulncheck-action'
       - uses: golang/govulncheck-action@v1
         with:
-          go-version-input: ${{ inputs.go-version }}
+          go-version-file: ${{ inputs.working-directory }}/go.mod
           go-package: ./...
           work-dir: ${{ inputs.working-directory }}
 
@@ -105,10 +102,10 @@ jobs:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v4
 
-      - name: Set up Go ${{ inputs.go-version }}
+      - name: Set up Go for app
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ inputs.go-version }}
+          go-version-file: ${{ inputs.working-directory }}/go.mod
           cache-dependency-path: ${{ inputs.working-directory }}/go.sum
 
       - name: golangci-lint
