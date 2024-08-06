@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.1.0](https://github.com/cccteam/github-workflows/compare/v5.0.0...v5.1.0) (2024-08-06)
+
+
+### Features
+
+* Add an optional 'golangci-lint-only-new-issues' input (default false) ([#42](https://github.com/cccteam/github-workflows/issues/42)) ([1722298](https://github.com/cccteam/github-workflows/commit/1722298732113220495eef910e48236467e5ff2e))
+
 ## [5.0.0](https://github.com/cccteam/github-workflows/compare/v4.1.0...v5.0.0) (2024-07-26)
 
 
