@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.2.0](https://github.com/cccteam/github-workflows/compare/v5.1.0...v5.2.0) (2024-09-06)
+
+
+### Features
+
+* Add Trunk Check Workflow Template for Terraform Repositories ([0a05667](https://github.com/cccteam/github-workflows/commit/0a05667421d06607a84b84aa95b6c12d9f2ae9df))
+
 ## [5.1.0](https://github.com/cccteam/github-workflows/compare/v5.0.0...v5.1.0) (2024-08-06)
 
 
