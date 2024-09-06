@@ -2,10 +2,9 @@ name: 'Trunk Check'
 on:
   workflow_call:
 
-
 jobs:
-  trunky-checky:
-    name: Check for go generate changes
+  trunk-check:
+    name: Check for trunk check issues
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -13,14 +12,3 @@ jobs:
 
       - name: Trunk Check
         uses: trunk-io/trunk-action@v1
-
-
-# name: Pull Request
-# concurrency:
-#   group: ${{ github.head_ref || github.run_id }}
-#   cancel-in-progress: true
-
-# name: 'Trunk check on PR'
-# description: 'Run trunk check'
-
-# permissions: read-all

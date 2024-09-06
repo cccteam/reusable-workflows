@@ -10,7 +10,7 @@ env:
   GH_TOKEN: ${{ github.token }}
 
 jobs:
-  closes-issue-check:
+  closes-issue-check: 
     runs-on: ubuntu-latest
     steps:
       - name: Check if PR closes an issue using GraphQL
