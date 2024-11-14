@@ -155,7 +155,7 @@ jobs:
   trivy:
     needs: env-setup
     name: Trivy Scan
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     if: ${{ inputs.execute-trivy-scan }}
     strategy:
       fail-fast: false
